@@ -812,7 +812,7 @@ class RuleAPI(handlers.JsonRequestHandler):
         params = tools.gets(self,
             strings=['name','column','alert_message','payment_amount'],
             floats=['value1','value2'],
-            json=['value_complex'],
+            json=['value_complex', 'spec'],
             integers=['sensortype_id','duration','buffer','plimit','plimit_type','consecutive','consecutive_limit','trigger'],
             lists=['alert_contacts','payment_contacts'])
         if key:
