@@ -68,10 +68,13 @@ class SensorProcessWorker(object):
         self.updated_alarm_dict = {}  # Stores alarms needing put upon finish()
 
     def _get_or_create_analysis(self, key_pattern):
-        a = Analysis.GetOrCreate(self.sensor, key_pattern)
-        if a:
-            akn = a.key().name()
-            if akn not in self.analyses:
+        a = None
+        akn = Analysis._key_name(key_pattern, self.sensor)
+        if akn in self.analyses:
+            a = self.analyses.get(akn)
+        else:
+            a = Analysis.GetOrCreate(self.sensor, key_pattern)
+            if a:
                 self.analyses[akn] = a
         return a
 

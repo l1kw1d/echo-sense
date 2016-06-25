@@ -132,13 +132,14 @@ class AlarmExpressionsTestCase(BaseTestCase):
             'ign_on':  [0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0], # Ignition on twice
             'ign_off': [0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  1,  0] # Ignition off twice
         }
+        # In total, on for 12 data points
         self.__createNewRecords(BATCH_1, first_dt=datetime.now() - timedelta(minutes=5), interval_secs=INTERVAL_SECS)
         self.__runProcessing()
 
         # Confirm analyzed total on seconds
         a = Analysis.GetOrCreate(self.vehicle_1, ANALYSIS_KEY_PATTERN)
         self.assertIsNotNone(a)
-        self.assertEqual(a.columnValue('on_secs'), 13 * INTERVAL_SECS)
+        self.assertEqual(a.columnValue('on_secs'), 12 * INTERVAL_SECS)
 
         self.sp = SensorProcessTask.Get(self.process, self.vehicle_1)
         self.assertEqual(self.sp.status_last_run, PROCESS.OK)
