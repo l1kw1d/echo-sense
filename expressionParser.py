@@ -213,6 +213,8 @@ class ExpressionParser(object):
                     alarm_list = [al for al in alarm_list if tools.getKey(Alarm, 'rule', al, asID=True) == rule_id]
                 if alarm_list:
                     last_alarm = sorted(alarm_list, key=lambda al : al.dt_end, reverse=True)[0]
+                else:
+                    last_alarm = self.analysis.sensor.alarm_set.order("-dt_end").get()
             return last_alarm
         elif fnName == "NOW":
             return self.run_ms
