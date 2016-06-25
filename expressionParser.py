@@ -37,15 +37,19 @@ class ExpressionParser(object):
         "COUNT",
         "ALARMS",
         "DISTANCE",
-        "SQRT"
+        "SQRT",
+        "SINCE",
+        "LAST_ALARM",
+        "NOW"
     ]
 
-    def __init__(self, expr, column=None, analysis=None, verbose=False):
+    def __init__(self, expr, column=None, analysis=None, run_ms=0, verbose=False):
         logging.debug("Building expression parser for %s" % expr)
         self.verbose = verbose
         self.expr = expr
         self.column = column
         self.analysis = analysis
+        self.run_ms = run_ms
         self.record_list = []
         self.alarm_list = []
         self.record = None
@@ -182,6 +186,36 @@ class ExpressionParser(object):
         elif fnName == "SQRT":
             arg = args[0]
             return math.sqrt(arg)
+        elif fnName == "SINCE":
+            # Returns ms since event (argument), or 0 if none found
+            event = args[0]
+            since = 0
+            now = self.run_ms
+            try:
+                if event:
+                    if event.kind() == 'Alarm':
+                        since = now - tools.unixtime(event.dt_start)
+                    elif event.kind() == 'Record':
+                        since = now - tools.unixtime(event.dt_recorded)
+            except:
+                pass
+            return since
+        elif fnName == "LAST_ALARM":
+            # Takes optional argument of rule ID to filter alarms
+            from models import Alarm
+            rule_id = None
+            last_alarm = None
+            if args:
+                rule_id = int(args[0])
+            alarm_list = list(self.alarm_list)
+            if alarm_list:
+                if rule_id:
+                    alarm_list = [al for al in alarm_list if tools.getKey(Alarm, 'rule', al, asID=True) == rule_id]
+                if alarm_list:
+                    last_alarm = sorted(alarm_list, key=lambda al : al.dt_end, reverse=True)[0]
+            return last_alarm
+        elif fnName == "NOW":
+            return self.run_ms
         return 0
 
 

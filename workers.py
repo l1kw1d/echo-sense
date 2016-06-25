@@ -55,12 +55,9 @@ class SensorProcessWorker(object):
         self.rules = self.process.get_rules()  # Rules active for this process
         if self.processers:
             # Fetch analyses used (if any) in any processers
+            # Note that this does not fetch analysis keys defined in rules
             for processer in self.processers:
-                a = Analysis.GetOrCreate(self.sensor, processer['analysis_key_pattern'])
-                if a:
-                    akn = a.key().name()
-                    if akn not in self.analyses:
-                        self.analyses[akn] = a
+                self._get_or_create_analysis(processer['analysis_key_pattern'])
 
         # Alarm & Condition State
         self.active_rules = [None for r in self.rules] # One Alarm() for each rule, initialized to Nones
@@ -69,6 +66,15 @@ class SensorProcessWorker(object):
         self.recent_alarms = self.fetch_recent_alarms() # List of most recent alarms (if period limited, in period up to limit) for each rule
         self.greatest_rule_diff = [0 for r in self.rules]  # Maintain largest diff (depth out of rule range)
         self.updated_alarm_dict = {}  # Stores alarms needing put upon finish()
+
+    def _get_or_create_analysis(self, key_pattern):
+        a = Analysis.GetOrCreate(self.sensor, key_pattern)
+        if a:
+            akn = a.key().name()
+            if akn not in self.analyses:
+                self.analyses[akn] = a
+        return a
+
 
     def last_activation_ts(self, rule_index):
         alarms = self.recent_alarms[rule_index]
@@ -114,30 +120,19 @@ class SensorProcessWorker(object):
 
     def runBatch(self, records):
         # Standard processing (alarms)
-        new_alarms = []
+        self.new_alarms = []
         for record in records:
             new_alarm = self.processRecord(record)
             if new_alarm:
-                new_alarms.append(new_alarm)
+                self.new_alarms.append(new_alarm)
 
         # Analysis processing
         if self.processers:
             for processer in self.processers:
-                key_pattern = processer.get('analysis_key_pattern')
-                if key_pattern:
-                    kn = Analysis._key_name(key_pattern, sensor=self.sensor)
-                    a = self.analyses.get(kn)
-                    col = processer.get('column')
-                    expr = processer.get('expr', processer.get('calculation', None))
-                    if expr and col:
-                        ep = ExpressionParser(expr, col, analysis=a)
-                        res = ep.run(record_list=records, alarm_list=new_alarms)
-                        a.setColumnValue(col, res)
-                    else:
-                        logging.error("No expression or no column found - %s" % processer)
-                else:
-                    logging.error("No analysis key pattern")
-            db.put(self.analyses.values())
+                run_ms = tools.unixtime(records[-1].dt_recorded) if records else 0
+                self._run_processer(processer, records=records, run_ms=run_ms)
+
+        db.put(self.analyses.values())
 
         logging.debug("Ran batch of %d." % (len(records)))
 
@@ -218,6 +213,20 @@ class SensorProcessWorker(object):
                 deactivate = True
         return (activate, deactivate, val)
 
+    def _run_processer(self, processer, records=None, run_ms=0):
+        if records is None:
+            records = []
+        key_pattern = processer.get('analysis_key_pattern')
+        if key_pattern:
+            a = self._get_or_create_analysis(key_pattern)
+            col = processer.get('column')
+            expr = processer.get('expr', processer.get('calculation', None))
+            if expr and col:
+                ep = ExpressionParser(expr, col, analysis=a, run_ms=run_ms)
+                res = ep.run(record_list=records, alarm_list=self.new_alarms)
+                print "Setting column %s to %s" % (col, res)
+                a.setColumnValue(col, res)
+
 
     def processRecord(self, record):
         # Listen for alarms
@@ -226,8 +235,11 @@ class SensorProcessWorker(object):
         for i, rule in enumerate(self.rules):
             activate, deactivate, value = self.__update_condition_status(i, record)
             if activate:
-                alarm = Alarm.Create(self.sensor, rule, record)
+                alarm, alarm_processers = Alarm.Create(self.sensor, rule, record)
                 alarm.put()
+                if alarm_processers:
+                    for processer in alarm_processers:
+                        self._run_processer(processer, run_ms=tools.unixtime(alarm.dt_start))
                 self.active_rules[i] = alarm
                 self.recent_alarms[i].insert(0, alarm) # Prepend
             elif deactivate:

@@ -859,6 +859,8 @@ class Rule(db.Model):
     sleep_week_days = db.ListProperty(int, indexed=False)  # 1 - 7 (Mon - Sun)
     sleep_months = db.ListProperty(int, indexed=False)  # 1 - 12
     sleep_hours = db.ListProperty(int, indexed=False) # 00 - 23
+    # JSON spec for ExpressionParser (cleaning, calculations, and production of analysis records). TODO: Validate
+    spec = db.TextProperty()
 
     def __repr__(self):
         return "<Rule trigger=%d column=%s>" % (self.trigger, self.column)
@@ -885,7 +887,8 @@ class Rule(db.Model):
             'alert_message': self.alert_message,
             'alert_contacts': self.alert_contacts,
             'payment_contacts': self.payment_contacts,
-            'payment_amount': str(self.payment_amount)
+            'payment_amount': str(self.payment_amount),
+            'spec': self.spec,
         }
 
     @staticmethod
@@ -937,8 +940,15 @@ class Rule(db.Model):
             self.payment_contacts = params['payment_contacts']
         if 'payment_amount' in params:
             self.payment_amount = tools.toDecimal(params['payment_amount'])
-
+        if 'spec' in params:
+            self.spec = json.dumps(params['spec'])
         return message
+
+    def get_processers(self):
+        spec = tools.getJson(self.spec)
+        if spec and 'processers' in spec:
+            return spec['processers']
+        return []
 
     def payments_enabled(self):
         return self.payment_contacts and self.payment_amount > 0
@@ -1640,8 +1650,9 @@ class Alarm(db.Model):
             a.notify_contacts()
         if rule.payments_enabled():
             a.request_payments()
+        processers = rule.get_processers()
         logging.debug("### Creating alarm '%s'! ###" % a)
-        return a
+        return (a, processers)
 
     @staticmethod
     def Delete(sensor=None, rule_id=None, limit=300):

@@ -73,7 +73,8 @@ export default class ManageRules extends React.Component {
                 { name: 'alert_contacts', label: "Alert Contacts (list of contact aliases)", editable: true, editOnly: true, formFromValue: util.comma_join },
                 { name: 'alert_message', label: "Alert Message", editable: true, editOnly: true },
                 { name: 'payment_contacts', label: "Payment Contacts (list of contact aliases)", editable: true, editOnly: true, formFromValue: util.comma_join },
-                { name: 'payment_amount', label: "Payment Amount (user currency)", editable: true, editOnly: true }
+                { name: 'payment_amount', label: "Payment Amount (user currency)", editable: true, editOnly: true },
+                { name: 'spec', label: "Processing Spec (JSON)", editable: true, editOnly: true, inputType: 'textarea', hint: "JSON object with processers array property to define optional processing when alarms are fired from rule" }
             ],
             'add_params': {},
             'unique_key': 'key',
