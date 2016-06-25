@@ -31,6 +31,12 @@ class ProcessTaskActions {
 	    });
 	}
 
+	duplicate(key) {
+	    api.post("/api/processtask/duplicate", {key: key}, (res) => {
+	    	this.dispatch(res);
+	    });
+	}
+
 	delete(key) {
 	    api.post("/api/processtask/delete", {key: key}, (res) => {
 	    	this.dispatch(res);

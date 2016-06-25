@@ -1210,6 +1210,13 @@ class ProcessTask(UserAccessible):
         day_of_month = now.day
         return day_of_week in self.week_days or day_of_month in self.month_days
 
+    def duplicate(self):
+        new_pt = tools.clone_entity(self,
+           parent=self.parent(),
+           label="Copy of " + self.label
+        )
+        return new_pt
+
     @staticmethod
     def Create(e):
         return ProcessTask(parent=e, enterprise=e)

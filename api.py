@@ -948,6 +948,21 @@ class ProcessTaskAPI(handlers.JsonRequestHandler):
         self.json_out({}, message=message, success=success)
 
     @authorized.role('api')
+    def duplicate(self, d):
+        success = False
+        message = None
+        key = self.request.get('key')
+        pt = ProcessTask.get(key)
+        if pt:
+            new_pt = pt.duplicate()
+            if new_pt:
+                new_pt.put()
+                success = True
+                message = "%s duplicated" % pt
+        self.json_out({'processtask': new_pt.json() if new_pt else None}, success=success)
+
+
+    @authorized.role('api')
     def associate(self, d):
         success = False
         message = None

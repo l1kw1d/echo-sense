@@ -108,6 +108,10 @@ export default class ProcessTaskDetail extends React.Component {
     });
   }
 
+  duplicate() {
+    ProcessTaskActions.duplicate(this.state.form.key);
+  }
+
   save() {
     var data = clone(this.state.form);
     if (data.spec) data.spec = JSON.stringify(data.spec);
@@ -200,6 +204,7 @@ export default class ProcessTaskDetail extends React.Component {
           <div className="pull-right">
             <IconMenu iconButtonElement={<IconButton><FontIcon className="material-icons">more_vert</FontIcon> /></IconButton>}>
               <MenuItem primaryText="Delete" onClick={this.confirm_delete.bind(this)} leftIcon={<FontIcon className="material-icons">delete</FontIcon>} />
+              <MenuItem primaryText="Duplicate" onClick={this.duplicate.bind(this)} leftIcon={<FontIcon className="material-icons">content_copy</FontIcon>} />
             </IconMenu>
           </div>
 
