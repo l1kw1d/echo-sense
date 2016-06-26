@@ -159,6 +159,17 @@ class UserAPI(handlers.JsonRequestHandler):
 
 
     @authorized.role('api')
+    def detail(self, uid, d):
+        message = None
+        u = User.GetAccessible(int(uid), self.user)
+        if u:
+            success = True
+        data = {
+            'user': u.json() if u else None
+            }
+        self.json_out(data, success=success, message=message)
+
+    @authorized.role('api')
     def update(self, d):
         success = False
         message = None

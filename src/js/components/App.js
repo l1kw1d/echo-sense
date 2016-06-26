@@ -78,6 +78,7 @@ export default class App extends React.Component {
   render() {
     var user = this.props.user;
     var is_admin = user ? user.level == AppConstants.USER_ADMIN : false;
+    var is_account_admin = is_admin ? true : (user ? user.level == AppConstants.USER_ACCOUNT_ADMIN : false);
     var can_write = user ? user.level > AppConstants.USER_READ : false;
     var wide = this.props.wide;
     var YEAR = "2015";
@@ -94,7 +95,7 @@ export default class App extends React.Component {
           <aside className="lnav">
             <nav>
               <div hidden={!is_admin}><Link to="/app/admin/manage"><IconButton iconClassName="material-icons" iconStyle={this.iSt} style={this.ibSt} tooltipPosition="bottom-right" tooltip="Admin Manage">settings</IconButton></Link></div>
-              <div hidden={!is_admin}><Link to="/app/admin/spoof" title="Spoof Data"><IconButton iconClassName="material-icons" iconStyle={this.iSt} style={this.ibSt} tooltipPosition="bottom-right" tooltip="Spoof">redo</IconButton></Link></div>
+              <div hidden={!is_account_admin}><Link to="/app/users" title="Users"><IconButton iconClassName="material-icons" iconStyle={this.iSt} style={this.ibSt} tooltipPosition="bottom-right" tooltip="Users">people</IconButton></Link></div>
               <div hidden={!can_write}><Link to="/app/manage" title="Manage"><IconButton iconClassName="material-icons" iconStyle={this.iSt} style={this.ibSt} tooltipPosition="bottom-right" tooltip="Manage">settings_applications</IconButton></Link></div>
               <div hidden={!can_write}><Link to="/app/logs" title="Logs"><IconButton iconClassName="material-icons" iconStyle={this.iSt} style={this.ibSt} tooltipPosition="bottom-right" tooltip="Logs">list</IconButton></Link></div>
               <div ><Link to="/app/sensors"><IconButton iconClassName="material-icons" iconStyle={this.iSt} style={this.ibSt} tooltipPosition="bottom-right" tooltip="Sensors">fiber_smart_record</IconButton></Link></div>

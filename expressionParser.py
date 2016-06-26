@@ -197,8 +197,8 @@ class ExpressionParser(object):
                         since = now - tools.unixtime(event.dt_start)
                     elif event.kind() == 'Record':
                         since = now - tools.unixtime(event.dt_recorded)
-            except:
-                pass
+            except Exception, e:
+                logging.debug("Error in SINCE() - %s" % e)
             return since
         elif fnName == "LAST_ALARM":
             # Takes optional argument of rule ID to filter alarms

@@ -183,7 +183,7 @@ class Enterprise(db.Model):
             return e.get_default_sensortype()
         return None
 
-class User(db.Model):
+class User(UserAccessible):
     """
     Key - ID
     """
@@ -1746,9 +1746,7 @@ class Alarm(db.Model):
             recipients = User.UsersFromSensorContactIDs(self.sensor, self.rule.alert_contacts)
             for recipient in recipients:
                 rendered_message = self.render_alert_message(recipient=recipient)
-                outbox.send_message(recipient, rendered_message, additional_params={
-                    'rule_id': self.rule.key().id()
-                })
+                outbox.send_message(recipient, rendered_message, rule_id=self.rule.key().id())
         return self.rule.alert_contacts
 
     def request_payments(self):
