@@ -1,4 +1,5 @@
 var util = require('utils/util');
+import { clone } from 'lodash';
 
 export default {
   changeHandler: function(target) {
@@ -10,7 +11,7 @@ export default {
     };
     target.prototype.changeHandlerVal = function(key, attr, value) {
       var state = {};
-      state[key] = this.state[key] || {};
+      state[key] = clone(this.state[key]) || {};
       state[key][attr] = value;
       state.lastChange = util.nowTimestamp(); // ms
       this.setState(state);

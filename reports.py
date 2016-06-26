@@ -100,7 +100,7 @@ class GCSReportWorker(object):
             logging.debug("TooLongError: Going to the next batch")
             if self.report:
                 self.finish(reportDone=False)
-                tools.safe_add_task(self.run, start_cursor=self._get_cursor(), _queue="worker-queue")
+                tools.safe_add_task(self.run, start_cursor=self._get_cursor(), _queue="report-queue")
         except Exception, e:  # including DeadlineExceededError
             traceback.print_exc()
             logging.error("Error: %s" % e)
@@ -113,6 +113,7 @@ class GCSReportWorker(object):
         if self.report.ftype == REPORT.CSV:
             string = tools.normalize_to_ascii('"'+'","'.join(self.headers)+'"\n')
             self.gcs_file.write(string)
+            logging.debug(string)
         elif self.report.ftype == REPORT.XLS:
             for i, header in enumerate(self.headers):
                 self.ws.write(0, i, header, self.xls_styles['bold'])
@@ -134,7 +135,6 @@ class GCSReportWorker(object):
                 for entity in entities:
                     if entity:
                         ed = self.entityData(entity)
-                        logging.debug(ed)
                     else:
                         continue
                     string = '?'
@@ -282,22 +282,36 @@ class SensorDataReportWorker(GCSReportWorker):
 
     def __init__(self, sensorkey, rkey):
         super(SensorDataReportWorker, self).__init__(rkey, start_att="dt_recorded", start_att_direction="-")
-        self.sensor = Sensor.get(sensorkey)
-        self.FILTERS = [("sensor =", self.sensor)]
-        self.report.title = "Sensor Data Report [ %s ]" % (self.sensor)
+        title_kwargs = {}
         specs = self.report.getSpecs()
-        ts_start = specs.get("ts_start", 0)
-        ts_end = specs.get("ts_end", 0)
-        if ts_start:
-            self.FILTERS.append(("dt_recorded >=", tools.dt_from_ts(ts_start)))
-        if ts_end:
-            self.FILTERS.append(("dt_recorded <", tools.dt_from_ts(ts_end)))
-        self.columns = specs.get('columns',[])
-        standard_cols = ["Date"]
+        if sensorkey:
+            self.sensor = Sensor.get(sensorkey)
+            self.FILTERS = [("sensor =", self.sensor)]
+            title_kwargs['sensor'] = str(self.sensor)
+        elif specs.get('sensortype_id'):
+            sensortype_id = specs.get('sensortype_id')
+            title_kwargs['sensor_type'] = sensortype_id
+            self.FILTERS = [("sensortype =", db.Key.from_path('SensorType', sensortype_id, parent=self.report.enterprise.key()))]
+        else:
+            # Enterprise wide
+            self.FILTERS = [("enterprise =", self.report.enterprise)]
+        start = specs.get("start", 0)
+        end = specs.get("end", 0)
+        if start:
+            self.FILTERS.append(("dt_recorded >=", tools.dt_from_ts(start)))
+        if end:
+            self.FILTERS.append(("dt_recorded <", tools.dt_from_ts(end)))
+        self.report.generate_title("Sensor Data Report", ts_start=start, ts_end=end, **title_kwargs)
+        self.columns = specs.get('columns', [])
+        standard_cols = ["Sensor ID", "Date"]
         self.headers = standard_cols + self.columns
+        self.batch_size = 1000
 
     def entityData(self, rec):
-        row = [tools.sdatetime(rec.dt_recorded, fmt="%Y-%m-%d %H:%M:%S %Z")]
+        row = [
+            "ID:%s" % tools.getKey(Record, 'sensor', rec, asID=True),
+            tools.sdatetime(rec.dt_recorded, fmt="%Y-%m-%d %H:%M:%S %Z")
+        ]
         for col in self.columns:
             row.append(str(rec.columnValue(col, default="")))
         return row
@@ -319,14 +333,38 @@ class AlarmReportWorker(GCSReportWorker):
         self.report.generate_title("Alarm Report", ts_start=start, ts_end=end)
         self.sensor_lookup = tools.lookupDict(Sensor, self.enterprise.sensor_set.fetch(limit=200), valueTransform=lambda s : s.name)
         self.rule_lookup = tools.lookupDict(Rule, self.enterprise.rule_set.fetch(limit=100))
-        self.headers = ["Sensor","Rule","Apex","Start","End"]
+        self.headers = ["Sensor ID","Sensor","Rule","Apex","Start","End"]
 
     def entityData(self, alarm):
-        sensor_name = self.sensor_lookup.get(tools.getKey(Alarm, 'sensor', alarm, asID=False), "")
+        sensor_id = tools.getKey(Alarm, 'sensor', alarm, asID=False)
+        sensor_name = self.sensor_lookup.get(sensor_id, "")
         rule_name = str(self.rule_lookup.get(tools.getKey(Alarm, 'rule', alarm, asID=False), ""))
         apex = "%.2f" % alarm.apex if alarm.apex is not None else "--"
-        row = [sensor_name, rule_name, apex, tools.sdatetime(alarm.dt_start), tools.sdatetime(alarm.dt_end)]
+        row = ["ID:%s" % sensor_id, sensor_name, rule_name, apex, tools.sdatetime(alarm.dt_start), tools.sdatetime(alarm.dt_end)]
         return row
+
+class APILogReportWorker(GCSReportWorker):
+    KIND = APILog
+
+    def __init__(self, rkey):
+        super(APILogReportWorker, self).__init__(rkey, start_att="date", start_att_direction="-")
+        self.enterprise = self.report.enterprise
+        self.FILTERS = [("enterprise =", self.enterprise)]
+        specs = self.report.getSpecs()
+        start = specs.get("start", 0)
+        end = specs.get("end", 0)
+        if start:
+            self.FILTERS.append(("date >=", tools.dt_from_ts(start)))
+        if end:
+            self.FILTERS.append(("date <", tools.dt_from_ts(end)))
+        self.report.generate_title("API Log Report", ts_start=start, ts_end=end)
+        self.headers = ["User ID","Date","Path","Method","Request"]
+
+    def entityData(self, apilog):
+        uid = "ID:%s" % tools.getKey(APILog, 'user', apilog, asID=True)
+        row = [uid, tools.sdatetime(apilog.date), apilog.path, apilog.method, apilog.request]
+        return row
+
 
 class AnalysisReportWorker(GCSReportWorker):
     KIND = Analysis

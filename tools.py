@@ -807,3 +807,15 @@ def point_within_radius(x,y, center_lat, center_lon, radius_m=1000):
     '''
     dist = calcDistance(x, y, center_lat, center_lon)
     return dist <= radius_m
+
+def paging_params(request, limit_param="max", limit_default=30, page_default=0):
+    MAX_OFFSET = 7000
+    max = request.get_range(limit_param, default=limit_default)
+    page = request.get_range('page', default=page_default)
+    if page:
+        offset = max * page
+    else: offset = 0
+    if offset > MAX_OFFSET:
+        from handlers import APIError
+        raise APIError("Maximum offset exceeded (%d)" % MAX_OFFSET)
+    return (page, max, offset)

@@ -196,3 +196,7 @@ Rules, finally, can identify who to contact when they are triggered.
 ### Alarm
 
 Alarms are produced when rules are triggered. They define a time window during which the rule was triggering. Alarms produce a historical record of important events (triggered by rules) for a given sensor or target.
+
+# WIP
+
+[![Stories in Ready](https://badge.waffle.io/echomobi/echo-sense.png?label=ready&title=Ready)](http://waffle.io/echomobi/echo-sense)

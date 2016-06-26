@@ -111,7 +111,7 @@ export default class App extends React.Component {
           <div id="container" className="container">
             <header className="topBar row">
               <div className="siteHeader col-sm-6">
-                <h1>{ SITENAME }</h1>
+                <h1><img src="/images/logos/echo_sense_white_512.png" height="15" style={{verticalAlign: '-8%'}} /> { SITENAME }</h1>
                 <h2>{ user.ent_name }</h2>
               </div>
               <div className="userSection col-sm-6">

@@ -70,27 +70,31 @@ MS_PER_DAY = MS_PER_HOUR * 24
 class DOWNSAMPLE():
     NONE = 0
     MINUTE = 1
-    TEN_MINUTE = 2
-    HOUR = 3
+    FIVE_MINUTE = 2
+    TEN_MINUTE = 3
+    HOUR = 4
 
     # Indexed
     PROPERTIES = {
         MINUTE: "minute",
         HOUR: "hour",
+        FIVE_MINUTE: "minute",
         TEN_MINUTE: "minute"
     }
 
     MS_PER = {
         MINUTE: MS_PER_MINUTE,
         HOUR: MS_PER_HOUR,
+        FIVE_MINUTE: MS_PER_MINUTE,
         TEN_MINUTE: MS_PER_MINUTE
     }
 
     INDEXED = [MINUTE, HOUR]
-    UNINDEXED = [TEN_MINUTE]
+    UNINDEXED = [FIVE_MINUTE, TEN_MINUTE]
 
     UNINDEXED_PROP_DIVIDER = {
-        TEN_MINUTE: 10
+        TEN_MINUTE: 10,
+        FIVE_MINUTE: 5
     }
 
 class REPORT():
@@ -98,6 +102,7 @@ class REPORT():
     SENSOR_DATA_REPORT = 1
     ALARM_REPORT = 2
     ANALYSIS_REPORT = 3
+    APILOG_REPORT = 4
 
     #status
     CREATED = 1
@@ -118,7 +123,12 @@ class REPORT():
 
     XLS_ROW_LIMIT = 65000
 
-    TYPE_LABELS = {SENSOR_DATA_REPORT: "Device Data", ALARM_REPORT: "Alarm Report", ANALYSIS_REPORT: "Analysis Report"}
+    TYPE_LABELS = {
+        SENSOR_DATA_REPORT: "Device Data",
+        ALARM_REPORT: "Alarm Report",
+        ANALYSIS_REPORT: "Analysis Report",
+        APILOG_REPORT: "API Log Report"
+    }
     STATUS_LABELS = {CREATED:"Created", GENERATING: "Generating", DONE:"Done", CANCELLED: "Cancelled", ERROR: "Error"}
     EXTENSIONS = {CSV: "csv", XLS: "xls", XLSX: "xlsx", PDF: "pdf"}
 

@@ -235,7 +235,7 @@ class ProcessingTestCase(BaseTestCase):
                 'analysis_key_pattern': ANALYSIS_KEY_PATTERN
             },
             {
-                'calculation': '. + COUNT(ALARMS())',
+                'calculation': '. + COUNT(ALARMS(%d))' % self.speeding_alarm.key().id(),
                 'column': 'count_alarms',
                 'analysis_key_pattern': ANALYSIS_KEY_PATTERN
             }
@@ -402,8 +402,21 @@ class ProcessingTestCase(BaseTestCase):
             )
         self.offroute_alarm.put()
 
+        # Create in radius alarm
+        self.in_radius_alarm = Rule.Create(self.e)
+        self.in_radius_alarm.Update(
+            name="In Nairobi",
+            sensortype_id=self.spedometer.key().id(),
+            column="location",
+            trigger=RULE.GEORADIUS_IN,
+            value2=500, # m
+            value_complex={'lat': -1.274359, "lon": 36.813106},
+            alert_contacts=["owner"],
+            duration=0)
+        self.in_radius_alarm.put()
+
         self.process = ProcessTask.Create(self.e)
-        self.process.Update(rule_ids=[self.offroute_alarm.key().id()])
+        self.process.Update(rule_ids=[self.offroute_alarm.key().id(), self.in_radius_alarm.key().id()])
         self.process.put()
 
         self.vehicle_2 = Sensor.Create(self.e, TEST_SENSOR_ID, self.geosensor.key().id())

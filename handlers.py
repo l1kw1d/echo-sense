@@ -11,6 +11,11 @@ import tools
 from constants import *
 import json
 
+class APIError(Exception):
+    def __init__(self, message, errors=None):
+        super(APIError, self).__init__(message)
+
+
 def jinja2_factory(app):
     j = jinja2.Jinja2(app)
     j.environment.filters.update({

@@ -62,7 +62,7 @@ module.exports = (
           <Route path=":processtaskID" component={ProcessTaskDetail} />
         </Route>
         <Route path="rules" component={ManageRules} />
-        <IndexRoute component="AnalysisSettings" />
+        <IndexRoute component={AnalysisSettings} />
       </Route>
       <Route path="analysis/:analysisKn" component={AnalysisDetail} />
       <Route path="data/:sensorKn" component={DataViewer} />

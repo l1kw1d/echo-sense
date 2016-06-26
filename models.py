@@ -642,8 +642,6 @@ class Sensor(UserAccessible):
     # color = db.StringProperty(indexed=False)
     # size = db.IntegerProperty(indexed=False)
     bearing = db.IntegerProperty(indexed=False) # Degrees CCW (0 = North), Deprecate
-    batt_level = db.FloatProperty(indexed=False) # (0.0,1.0)
-    batt_charging = db.BooleanProperty(indexed=False)
 
     def __repr__(self):
         return "<Sensor name=%s kn=%s>" % (self.name, self.key().name())
@@ -662,8 +660,6 @@ class Sensor(UserAccessible):
             'enterprise_id': tools.getKey(Sensor, 'enterprise', self, asID=True),
             'target_id': tools.getKey(Sensor, 'target', self, asID=True),
             'contacts': self.contacts,
-            'batt_level': self.batt_level,
-            'batt_charging': self.batt_charging,
             'group_ids': self.group_ids,
             'location': str(self.location) if self.location else None,
             'bearing': self.bearing
@@ -692,7 +688,7 @@ class Sensor(UserAccessible):
         return res
 
     @staticmethod
-    def Fetch(user, updated_since=None, target_id=None, group_id=None, limit=50):
+    def Fetch(user, updated_since=None, target_id=None, group_id=None, limit=50, offset=0):
         e = user.enterprise
         q = Sensor.all().ancestor(e)
         if updated_since:
@@ -701,7 +697,7 @@ class Sensor(UserAccessible):
             q.filter("target =", db.Key.from_path('Target', target_id, parent=e.key()))
         elif group_id:
             q.filter("group_ids =", group_id)
-        sensors = q.fetch(limit=limit)
+        sensors = q.fetch(limit=limit, offset=offset)
         if user.is_admin() or user.is_account_admin():
             # Fetch all sensors in ent
             return sensors
@@ -863,6 +859,8 @@ class Rule(db.Model):
     sleep_week_days = db.ListProperty(int, indexed=False)  # 1 - 7 (Mon - Sun)
     sleep_months = db.ListProperty(int, indexed=False)  # 1 - 12
     sleep_hours = db.ListProperty(int, indexed=False) # 00 - 23
+    # JSON spec for ExpressionParser (cleaning, calculations, and production of analysis records). TODO: Validate
+    spec = db.TextProperty()
 
     def __repr__(self):
         return "<Rule trigger=%d column=%s>" % (self.trigger, self.column)
@@ -889,7 +887,8 @@ class Rule(db.Model):
             'alert_message': self.alert_message,
             'alert_contacts': self.alert_contacts,
             'payment_contacts': self.payment_contacts,
-            'payment_amount': str(self.payment_amount)
+            'payment_amount': str(self.payment_amount),
+            'spec': self.spec,
         }
 
     @staticmethod
@@ -941,8 +940,15 @@ class Rule(db.Model):
             self.payment_contacts = params['payment_contacts']
         if 'payment_amount' in params:
             self.payment_amount = tools.toDecimal(params['payment_amount'])
-
+        if 'spec' in params:
+            self.spec = json.dumps(params['spec'])
         return message
+
+    def get_processers(self):
+        spec = tools.getJson(self.spec)
+        if spec and 'processers' in spec:
+            return spec['processers']
+        return []
 
     def payments_enabled(self):
         return self.payment_contacts and self.payment_amount > 0
@@ -1028,7 +1034,7 @@ class Rule(db.Model):
             if geo_value and val:
                 gp = tools.safe_geopoint(val)
                 if gp and 'lat' in geo_value and 'lon' in geo_value:
-                    inside = tools.point_within_radius(gp.lat, gp.lon, geo_value.get('lat'), geo_value.get('lon'), radius_m=self.value2)
+                    inside = tools.point_within_radius(gp.lat, gp.lon, float(geo_value.get('lat')), float(geo_value.get('lon')), radius_m=self.value2)
                     passed = inside == (self.trigger == RULE.GEORADIUS_IN)
         else:
             raise Exception("Unsupported trigger type: %s" % self.trigger)
@@ -1154,7 +1160,7 @@ class ProcessTask(UserAccessible):
     enterprise = db.ReferenceProperty(Enterprise)
     dt_created = db.DateTimeProperty(auto_now_add=True)
     # Run every 'interval' seconds between 'time_start' and 'time_end'
-    interval = db.IntegerProperty(default=0)  # Seconds, 0 = disabled (run once)
+    interval = db.IntegerProperty(default=120)  # Seconds
     time_start = db.TimeProperty(indexed=False)  # UTC
     time_end = db.TimeProperty(indexed=False)  # UTC
     # Scheduling - OR of the below
@@ -1213,6 +1219,13 @@ class ProcessTask(UserAccessible):
         day_of_week = now.weekday() + 1 # 1-7 M-Su
         day_of_month = now.day
         return day_of_week in self.week_days or day_of_month in self.month_days
+
+    def duplicate(self):
+        new_pt = tools.clone_entity(self,
+           parent=self.parent(),
+           label="Copy of " + self.label
+        )
+        return new_pt
 
     @staticmethod
     def Create(e):
@@ -1433,13 +1446,12 @@ class Record(db.Expando):
     """
     enterprise = db.ReferenceProperty(Enterprise)
     sensor = db.ReferenceProperty(Sensor)
+    sensortype = db.ReferenceProperty(SensorType)
     target = db.ReferenceProperty(Target)
     dt_recorded = db.DateTimeProperty()  # Real time in UTC (from timestamp)
     dt_created = db.DateTimeProperty(auto_now_add=True)  # Hit server
     minute = db.IntegerProperty()  # Minutes since UTC epoch (for downsample)
     hour = db.IntegerProperty()  # Minutes since UTC epoch (for downsample)
-    batt_level = db.FloatProperty(indexed=False)
-    batt_charging = db.BooleanProperty(indexed=False)
 
     def __repr__(self):
         return "<Record kn=%s />" % self.key().name()
@@ -1451,8 +1463,7 @@ class Record(db.Expando):
                 'kn': self.key().name(),
                 'ts': tools.unixtime(self.dt_recorded),
                 'ts_created': tools.unixtime(self.dt_created),
-                'sensor_key': tools.getKey(Record, 'sensor', self, asID=False),
-                'batt_level': self.batt_level
+                'sensor_key': tools.getKey(Record, 'sensor', self, asID=False)
             }
         if with_props:
             res['columns'] = {}
@@ -1488,6 +1499,14 @@ class Record(db.Expando):
 
         Note that unindexed downsamples (see DOWNSAMPLE()) uses limit for the initial fetch,
         but will return less records after post-query filtering.
+
+        Args:
+            dt_start (datetime): Start of date filter range
+            dt_end (datetime): End of date filter range
+            downsample (int): Optional downsample
+
+        Returns:
+            List of Record() objects (most recent first)
         '''
         if downsample:
             ds_prop = DOWNSAMPLE.PROPERTIES.get(downsample)
@@ -1508,19 +1527,25 @@ class Record(db.Expando):
             if dt_end:
                 end = tools.unixtime(dt_end) / ms_per
                 q.filter(ds_prop+" <=", end)
-            # Query returns keys of downsampled records
-            proj_records = q.fetch(limit=limit)
+
+            prop_divider = 0
             if downsample in DOWNSAMPLE.UNINDEXED:
                 # Manual downsampling using dict keys
                 prop_divider = DOWNSAMPLE.UNINDEXED_PROP_DIVIDER.get(downsample)
-                if prop_divider:
-                    unique_by_period = {}
-                    for rec in proj_records:
-                        ds_value = getattr(rec, ds_prop, 0)
-                        if type(ds_value) in [float, int, long]:
-                            rec.ds_period = ds_value / prop_divider
-                            unique_by_period[rec.ds_period] = rec
-                    proj_records = sorted(unique_by_period.values(), key=lambda r : r.ds_period)
+            # Multiply limit if we're doing an unindexed downsample since we will lose
+            # records in the filtering.
+            if prop_divider:
+                limit *= prop_divider
+            # Query returns keys of downsampled records
+            proj_records = q.fetch(limit=limit)
+            if prop_divider:
+                unique_by_period = {}
+                for rec in proj_records:
+                    ds_value = getattr(rec, ds_prop, 0)
+                    if type(ds_value) in [float, int, long]:
+                        rec.ds_period = ds_value / prop_divider
+                        unique_by_period[rec.ds_period] = rec
+                proj_records = sorted(unique_by_period.values(), key=lambda r : r.ds_period, reverse=True)
             return Record.get([x.key() for x in proj_records])
         else:
             q.order("-dt_recorded")
@@ -1543,25 +1568,11 @@ class Record(db.Expando):
             logging.warning("Non-sane ts in Record.Create, not creating: %s" % ts)
         else:
             if kn and schema:
-                batt_level = data.get('batt_level', -1.0)
-                if type(batt_level) in [float, int, long]:
-                    batt_level = float(batt_level)
-                else:
-                    batt_level = None
-                batt_charging = bool(data.get('batt_charging', 0))
-                if apply_roles:
-                    # Standard roles (currently just battery)
-                    if 'batt_level' in data and batt_level >= 0:
-                        prev_batt_level = sensor.batt_level
-                        sensor.batt_level = float(batt_level)
-                        if batt_level < WARN_BATT_LEVEL and prev_batt_level >= WARN_BATT_LEVEL:
-                            warning_text = "Battery for %s is %s" % (sensor, batt_level)
-                            outbox.email_admins("Battery warning", warning_text)
-                    if 'batt_charging' in data:
-                        sensor.batt_charging = batt_charging
                 minute = int(ts / 1000 / 60)
                 hour = int(minute / 60)
-                r = Record(key_name=kn, parent=sensor, sensor=sensor, target=sensor.target, dt_recorded=tools.dt_from_ts(ts), minute=minute, hour=hour, batt_level=batt_level, batt_charging=batt_charging, enterprise=sensor.enterprise)
+                targetkey = tools.getKey(Sensor, 'target', sensor, asID=False, keyObj=True)
+                sensortypekey = tools.getKey(Sensor, 'sensortype', sensor, asID=False, keyObj=True)
+                r = Record(key_name=kn, parent=sensor, sensor=sensor, target=targetkey, sensortype=sensortypekey, dt_recorded=tools.dt_from_ts(ts), minute=minute, hour=hour, enterprise=sensor.enterprise)
                 # First pass extracts record data as defined by schema, and creates dict of pending calculations
                 calculations = {}
                 for column, colschema in schema.items():
@@ -1646,8 +1657,9 @@ class Alarm(db.Model):
             a.notify_contacts()
         if rule.payments_enabled():
             a.request_payments()
+        processers = rule.get_processers()
         logging.debug("### Creating alarm '%s'! ###" % a)
-        return a
+        return (a, processers)
 
     @staticmethod
     def Delete(sensor=None, rule_id=None, limit=300):
@@ -1684,7 +1696,7 @@ class Alarm(db.Model):
         try:
             self.apex = float(value)
         except:
-            logging.warning("Failed to set apex to %s" % value)
+            logging.debug("Failed to set apex to %s" % value)
 
     def duration(self):
         '''
@@ -1734,7 +1746,9 @@ class Alarm(db.Model):
             recipients = User.UsersFromSensorContactIDs(self.sensor, self.rule.alert_contacts)
             for recipient in recipients:
                 rendered_message = self.render_alert_message(recipient=recipient)
-                outbox.send_message(recipient, rendered_message)
+                outbox.send_message(recipient, rendered_message, additional_params={
+                    'rule_id': self.rule.key().id()
+                })
         return self.rule.alert_contacts
 
     def request_payments(self):
@@ -1768,6 +1782,7 @@ class Report(UserAccessible):
     def json(self):
         return {
             'key': str(self.key()),
+            'id': self.key().id(),
             'title': self.title,
             'status': self.status,
             'serve_url': self.serving_url(),
@@ -1791,7 +1806,7 @@ class Report(UserAccessible):
     def getSpecs(self):
         if self.specs:
             return json.loads(self.specs)
-        return None
+        return {}
 
     def isDone(self):
         return self.status == REPORT.DONE
@@ -1871,6 +1886,9 @@ class Report(UserAccessible):
         elif self.type == REPORT.ANALYSIS_REPORT:
             from reports import AnalysisReportWorker
             worker = AnalysisReportWorker(target, self.key())
+        elif self.type == REPORT.APILOG_REPORT:
+            from reports import APILogReportWorker
+            worker = APILogReportWorker(self.key())
         else:
             worker = None
         if worker and self.status not in [REPORT.ERROR, REPORT.CANCELLED]:
@@ -1958,7 +1976,7 @@ class APILog(UserAccessible):
             path = request.path
             host = request.host
             method = request.method
-            AUTH_PARAMS = ['auth', 'password']  # To not be included in log
+            AUTH_PARAMS = ['auth', 'password', 'uid', 'pw']  # To not be included in log
             req = {}
             for arg in request.arguments():
                 if arg not in AUTH_PARAMS:
@@ -1981,6 +1999,6 @@ class APILog(UserAccessible):
             return None
 
     @staticmethod
-    def Recent(_max=20):
-        q = APILog.all().order("-date")
+    def Recent(enterprise, _max=20):
+        q = APILog.all().filter("enterprise =", enterprise).order("-date")
         return q.fetch(_max)

@@ -96,10 +96,16 @@ export default class AdminSpoof extends React.Component {
                 <h1><FontIcon className="material-icons">redo</FontIcon> Spoof Data</h1>
 
                 <div>
-                    <pre><b>POST</b> { this.get_post_url() }</pre>
-
-                    <label>Sensor</label>
-                    <Select options={opts} value={this.state.form.sensor_kn} onChange={this.changeHandlerVal.bind(this, 'form', 'sensor_kn')} simpleValue/>
+                    <div className="row">
+                        <div className="col-sm-6">
+                            <label>API Call</label>
+                            <pre><b>POST</b> { this.get_post_url() }</pre>
+                        </div>
+                        <div className="col-sm-6">
+                            <label>Sensor</label>
+                            <Select options={opts} value={this.state.form.sensor_kn} onChange={this.changeHandlerVal.bind(this, 'form', 'sensor_kn')} simpleValue/>
+                        </div>
+                    </div>
 
                     <label>JSON body</label>
                     <textarea value={this.get_post_body()} className="form-control" placeholder="JSON Body" disabled/>
@@ -108,7 +114,7 @@ export default class AdminSpoof extends React.Component {
                         { _params }
                     </ul>
 
-                    <a className="btn btn-primary" onClick={this.add_param.bind(this)}>Add param</a>
+                    <FlatButton label="Add Param" onClick={this.add_param.bind(this)} />
 
                     <div className="text-center">
                         <p>Careful, data sent here is interpereted and saved as real data</p>

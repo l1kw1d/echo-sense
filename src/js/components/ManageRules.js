@@ -65,15 +65,16 @@ export default class ManageRules extends React.Component {
                 { name: 'buffer', label: "Buffer (ms)", editable: true,editOnly: true },
                 { name: 'plimit_type', label: "Period Limit Type", hint: "Type of Period (for period limit)", editable: true, editOnly: true, inputType: "select", opts: plimit_type_opts, defaultValue: -2 },
                 { name: 'plimit', label: "Period Limit", hint: "Allowed alarms per period", editable: true, editOnly: true },
-                { name: 'consecutive', label: "Consecutive", editable: true, editOnly: true },
-                { name: 'consecutive_limit', label: "Consecutive Limit (deactivate after)", editable: true, editOnly: true },
+                { name: 'consecutive', label: "Consecutive", editable: true, editOnly: true, presets: [{value: -1, label: "Disabled"}] },
+                { name: 'consecutive_limit', label: "Consecutive Limit (deactivate after)", editable: true, editOnly: true, presets: [{value: -1, label: "Disabled"}, {value: -2, label: "Any"}] },
                 { name: 'value1', label: "Value 1", editable: true, editOnly: true },
                 { name: 'value2', label: "Value 2", editable: true, editOnly: true },
                 { name: 'value_complex', label: "Complex Value", editable: true, editOnly: true, inputType: 'textarea', hint: "JSON representation of complex rule values. See geojson.io for GeoJSON editor." },
                 { name: 'alert_contacts', label: "Alert Contacts (list of contact aliases)", editable: true, editOnly: true, formFromValue: util.comma_join },
                 { name: 'alert_message', label: "Alert Message", editable: true, editOnly: true },
                 { name: 'payment_contacts', label: "Payment Contacts (list of contact aliases)", editable: true, editOnly: true, formFromValue: util.comma_join },
-                { name: 'payment_amount', label: "Payment Amount (user currency)", editable: true, editOnly: true }
+                { name: 'payment_amount', label: "Payment Amount (user currency)", editable: true, editOnly: true },
+                { name: 'spec', label: "Processing Spec (JSON)", editable: true, editOnly: true, inputType: 'textarea', hint: "JSON object with processers array property to define optional processing when alarms are fired from rule" }
             ],
             'add_params': {},
             'unique_key': 'key',
@@ -85,7 +86,7 @@ export default class ManageRules extends React.Component {
         return (
             <div>
 
-                <h2>Ruels</h2>
+                <h2>Rules</h2>
 
                 <SimpleAdmin {...props} />
 

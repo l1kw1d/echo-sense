@@ -118,7 +118,7 @@ export default class AdminManage extends React.Component {
                     { _tabs }
                 </ul>
 
-                <SimpleAdmin {...props} />
+                <SimpleAdmin ref="sa" {...props} />
 
             </div>
         );

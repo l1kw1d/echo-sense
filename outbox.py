@@ -56,7 +56,7 @@ def send_sms(enterprise, phone, message):
         if response.status_code == 200:
             logging.debug(response.content)
 
-def send_message(user, message):
+def send_message(user, message, **additional_params):
     logging.info("Trying to send message to %s: %s" % (user, message))
     if user.alert_channel == CHANNEL.SMS and user.phone:
         phone = tools.standardize_phone(user.phone)
@@ -66,6 +66,8 @@ def send_message(user, message):
         send_email(user.email, message, message, signoff="\n\n-Echo Sense")
     elif user.alert_channel == CHANNEL.GCM and user.gcm_reg_id:
         payload = {"message": message}
+        if additional_params:
+            payload.update(additional_params)
         send_gcm_message(payload, users=[user])
 
 def send_airtime(enterprise, phone, amount, currency):

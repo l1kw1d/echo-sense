@@ -37,15 +37,19 @@ class ExpressionParser(object):
         "COUNT",
         "ALARMS",
         "DISTANCE",
-        "SQRT"
+        "SQRT",
+        "SINCE",
+        "LAST_ALARM",
+        "NOW"
     ]
 
-    def __init__(self, expr, column=None, analysis=None, verbose=False):
+    def __init__(self, expr, column=None, analysis=None, run_ms=0, verbose=False):
         logging.debug("Building expression parser for %s" % expr)
         self.verbose = verbose
         self.expr = expr
         self.column = column
         self.analysis = analysis
+        self.run_ms = run_ms
         self.record_list = []
         self.alarm_list = []
         self.record = None
@@ -82,11 +86,14 @@ class ExpressionParser(object):
 
     def __multOp(self, toks):
         value = toks[0]
-        prod = value[0]
+        _prod = value[0]
+        if type(_prod) not in [int, long, float]:
+            # Handle unexpected text addition
+            _prod = 0
         for op,val in self.operatorOperands(value[1:]):
-            if op == '*': prod *= val
-            if op == '/': prod /= val
-        return prod
+            if op == '*': _prod *= val
+            if op == '/': _prod /= val
+        return _prod
 
     def __expOp(self, toks):
         value = toks[0]
@@ -97,11 +104,14 @@ class ExpressionParser(object):
 
     def __addOp(self, toks):
         value = toks[0]
-        sum = value[0]
+        _sum = value[0]
+        if type(_sum) not in [int, long, float]:
+            # Handle unexpected text addition
+            _sum = 0
         for op,val in self.operatorOperands(value[1:]):
-            if op == '+': sum += val
-            if op == '-': sum -= val
-        return sum
+            if op == '+': _sum += val
+            if op == '-': _sum -= val
+        return _sum
 
     def __evalLogicOp(self, toks):
         args = toks[0]
@@ -153,13 +163,14 @@ class ExpressionParser(object):
         elif fnName == "COUNT":
             return len(args)
         elif fnName == "ALARMS":
+            from models import Alarm
             # Usage: ALARMS([rule_id])
             # Returns list of alarms in processed batch, optionally filtered by rule_id
             alarm_list = list(self.alarm_list)
-            if args and args[0].isdigit():
+            if args and type(args[0]) in [int, long, float]:
                 rule_id = int(args[0])
                 if rule_id:
-                    alarm_list.filter(lambda al : tools.getKey(Alarm, 'rule', al, asID=True) == rule_id)
+                    alarm_list = [al for al in alarm_list if tools.getKey(Alarm, 'rule', al, asID=True) == rule_id]
             return alarm_list
         elif fnName == "DISTANCE":
             dist = 0
@@ -175,6 +186,38 @@ class ExpressionParser(object):
         elif fnName == "SQRT":
             arg = args[0]
             return math.sqrt(arg)
+        elif fnName == "SINCE":
+            # Returns ms since event (argument), or 0 if none found
+            event = args[0]
+            since = 0
+            now = self.run_ms
+            try:
+                if event:
+                    if event.kind() == 'Alarm':
+                        since = now - tools.unixtime(event.dt_start)
+                    elif event.kind() == 'Record':
+                        since = now - tools.unixtime(event.dt_recorded)
+            except:
+                pass
+            return since
+        elif fnName == "LAST_ALARM":
+            # Takes optional argument of rule ID to filter alarms
+            from models import Alarm
+            rule_id = None
+            last_alarm = None
+            if args:
+                rule_id = int(args[0])
+            alarm_list = list(self.alarm_list)
+            if alarm_list:
+                if rule_id:
+                    alarm_list = [al for al in alarm_list if tools.getKey(Alarm, 'rule', al, asID=True) == rule_id]
+                if alarm_list:
+                    last_alarm = sorted(alarm_list, key=lambda al : al.dt_end, reverse=True)[0]
+                else:
+                    last_alarm = self.analysis.sensor.alarm_set.order("-dt_end").get()
+            return last_alarm
+        elif fnName == "NOW":
+            return self.run_ms
         return 0
 
 

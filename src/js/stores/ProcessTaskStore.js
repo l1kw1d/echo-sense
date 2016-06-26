@@ -29,11 +29,16 @@ class ProcessTaskStore {
     }
 
     onUpdate(res) {
-        console.log("onUpdate in ProcessTaskStore");
         if (res.data && res.data.processtask != null) {
-            console.log("success...");
             var task = res.data.processtask;
-            console.log(task);
+            task.updated_ms = util.nowTimestamp(); // ms
+            this.tasks[task.id] = task;
+        }
+    }
+
+    onDuplicate(res) {
+        if (res.data && res.data.processtask != null) {
+            var task = res.data.processtask;
             task.updated_ms = util.nowTimestamp(); // ms
             this.tasks[task.id] = task;
         }

@@ -23,7 +23,6 @@ var GChart = React.createClass({displayName: 'GChart',
   },
   getInitialState: function() {
     return {
-      open: this.props.defaultOpen, // Unused?
       dataTable: this.props.dataSourceUrl ? null : new google.visualization.DataTable(),
       wrapper: null
     }
@@ -43,7 +42,6 @@ var GChart = React.createClass({displayName: 'GChart',
     });
   },
   initializeDataTable: function(callback) {
-    console.log("initializing data table");
     var dt = new google.visualization.DataTable();
     if (dt) {
       // Add columns and data from props
@@ -51,14 +49,16 @@ var GChart = React.createClass({displayName: 'GChart',
         var c = this.props.columns[i];
         if (Array.isArray(c)) dt.addColumn(c[0], c[1]);
         else dt.addColumn(c); // Cols as objects
+        console.log(c);
       }
       if (this.props.data.length > 0) {
-        console.log("Adding "+this.props.data.length+" rows.");
+        console.log("Adding "+this.props.data.length+" row(s)");
         dt.addRows(this.props.data);
       }
       this.setState({dataTable: dt}, function() {
         if (callback) callback();
       });
+      console.log("Initialized data table with "+dt.getNumberOfColumns()+" column(s) and "+this.props.data.length+" row(s)");
     } else {
       if (callback) callback();
     }
@@ -119,6 +119,7 @@ var GChart = React.createClass({displayName: 'GChart',
     if (this.state.dataTable) wrapper.setDataTable(this.state.dataTable);
     if (this.props.dataSourceUrl) wrapper.setDataSourceUrl(this.props.dataSourceUrl);
     if (opts) wrapper.setOptions(opts);
+    console.log("Initialized wrapper in container '"+this.props.id+"', type: "+this.props.type);
     this.setState({wrapper: wrapper}, function() {
       if (callback) callback();
     });

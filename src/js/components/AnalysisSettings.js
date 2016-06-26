@@ -77,7 +77,7 @@ export default class AnalysisSettings extends React.Component {
 
         { this.props.children }
 
-        <h2>Process Tasks</h2>
+        <h2>Settings - Process Tasks</h2>
 
         <AltContainer store={ProcessTaskStore} actions={ function(props) {
           return {

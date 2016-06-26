@@ -13,19 +13,6 @@ import json
 
 import handlers
 
-# class SendMessage(handlers.BaseRequestHandler):
-#     """
-#     """
-#     @authorized.role()
-#     def post(self, d):
-#         uid = self.request.get_range('uid')
-#         story_id = self.request.get_range('story_id')
-#         u = User.get_by_id(uid)
-#         notify._SendMessage(users=[u],
-#             payload={'story_id': story_id},
-#             collapse="GCM_MESSAGE_%d_STORY_%d" % (_type, story_id)
-#             )
-
 class GCMConnection(handlers.JsonRequestHandler):
     @authorized.role('api')
     def post(self, d):

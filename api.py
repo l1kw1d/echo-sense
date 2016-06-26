@@ -149,7 +149,8 @@ class UserAPI(handlers.JsonRequestHandler):
     @authorized.role('api')
     def list(self, d):
         message = None
-        users = User.all().fetch(100)
+        page, max, offset = tools.paging_params(self.request, limit_default=100)
+        users = self.enterprise.user_set.fetch(limit=max, offset=offset)
         success = True
         data = {
             'users': [user.json() for user in users]
@@ -315,7 +316,7 @@ class SensorAPI(handlers.JsonRequestHandler):
         message = None
 
         key_names = self.request.get('key_names') # comma sep
-        _max = self.request.get_range('max', max_value=500, default=100)
+        page, _max, offset = tools.paging_params(self.request, limit_default=100)
         with_records = self.request.get_range('with_records', default=0)
         ms_updated_since = self.request.get_range('updated_since', default=0) # ms
         target_id = self.request.get_range('target_id')
@@ -326,7 +327,7 @@ class SensorAPI(handlers.JsonRequestHandler):
         if key_names:
             sensors = Sensor.get_by_key_name(key_names.split(','), parent=self.enterprise)
         else:
-            sensors = Sensor.Fetch(d['user'], updated_since=updated_since, target_id=target_id, group_id=group_id, limit=_max)
+            sensors = Sensor.Fetch(d['user'], updated_since=updated_since, target_id=target_id, group_id=group_id, limit=_max, offset=offset)
         success = True
 
         data = {
@@ -811,7 +812,7 @@ class RuleAPI(handlers.JsonRequestHandler):
         params = tools.gets(self,
             strings=['name','column','alert_message','payment_amount'],
             floats=['value1','value2'],
-            json=['value_complex'],
+            json=['value_complex', 'spec'],
             integers=['sensortype_id','duration','buffer','plimit','plimit_type','consecutive','consecutive_limit','trigger'],
             lists=['alert_contacts','payment_contacts'])
         if key:
@@ -947,6 +948,21 @@ class ProcessTaskAPI(handlers.JsonRequestHandler):
         self.json_out({}, message=message, success=success)
 
     @authorized.role('api')
+    def duplicate(self, d):
+        success = False
+        message = None
+        key = self.request.get('key')
+        pt = ProcessTask.get(key)
+        if pt:
+            new_pt = pt.duplicate()
+            if new_pt:
+                new_pt.put()
+                success = True
+                message = "%s duplicated" % pt
+        self.json_out({'processtask': new_pt.json() if new_pt else None}, success=success)
+
+
+    @authorized.role('api')
     def associate(self, d):
         success = False
         message = None
@@ -1006,14 +1022,16 @@ class ReportAPI(handlers.JsonRequestHandler):
         report = Report.Create(d['enterprise'], type=type, specs=specs, ftype=ftype)
         report.put()
         tools.safe_add_task(backgroundReportRun, str(report.key()), target=target, _queue="worker-queue")
-        self.json_out(success=True, message="%s generating..." % report.title)
+        self.json_out(success=True, message="%s generating..." % report.title, data={
+            'report': report.json() if report else None
+            })
 
     @authorized.role('api')
     def serve(self, d):
         rkey = self.request.get('rkey')
         r = Report.GetAccessible(rkey, d['user'])
         if r:
-            if r.gcs_files:
+            if r.isDone() and r.gcs_files:
                 try:
                     gcsfn = r.gcs_files[0]
                     gcs_file = gcs.open(gcsfn, 'r')
@@ -1024,6 +1042,8 @@ class ReportAPI(handlers.JsonRequestHandler):
                     self.response.headers['Content-Disposition'] = str('attachment; filename="%s"' % r.filename())
                     self.response.write(gcs_file.read())
                     gcs_file.close()
+            else:
+                self.json_out(success=False, status=404, message="Report not ready") # Not found
         else:
             self.response.out.write("Unauthorized")
 
@@ -1049,7 +1069,7 @@ class APILogAPI(handlers.JsonRequestHandler):
 
         _max = self.request.get_range('max', max_value=500, default=100)
 
-        apilogs = APILog.Recent(_max=_max)
+        apilogs = APILog.Recent(self.enterprise, _max=_max)
         success = True
 
         data = {

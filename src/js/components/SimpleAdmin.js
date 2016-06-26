@@ -44,6 +44,14 @@ class EditForm extends React.Component {
     this.props.onFormChange(i, this.props.creating_new);
   }
 
+  handle_preset_click(prop, value) {
+    var item = clone(this.props.item) || {};
+    if (item != null) {
+      item[prop] = value;
+      this.props.onFormChange(item);
+    }
+  }
+
   render() {
     var item = this.props.item;
     var kn_disabled = !this.props.creating_new;
@@ -138,6 +146,18 @@ class EditForm extends React.Component {
             </div>
           );
         } else {
+          var _presets;
+          if (att.presets) {
+            _presets = (
+              <div className="vpad">
+                { att.presets.map((preset) => {
+                  var sel = value_out == preset.value;
+                  var st = sel ? { backgroundColor: "#35C3C6" } : {};
+                  return <FlatButton style={st} label={preset.label} onClick={this.handle_preset_click.bind(this, att.name, preset.value)} />
+                })}
+              </div>
+              )
+          }
           _input = (
             <div className="form-group" key={key}>
               <label htmlFor={key}>{ label }</label>
@@ -151,6 +171,7 @@ class EditForm extends React.Component {
                 value={ value_out }
                 onChange={this.handleChange.bind(this, att)}
                 disabled={fixed}/>
+              { _presets }
             </div>
           );
         }
@@ -283,7 +304,7 @@ export default class SimpleAdmin extends React.Component {
   }
   clearAndFetch() {
     var that = this;
-    this.setState({items: [], status: 'closed', selected: null}, function() {
+    this.setState({items: [], status: 'closed', selected: null, page: 0}, function() {
       that.fetchItems();
     });
   }

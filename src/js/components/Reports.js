@@ -6,6 +6,7 @@ var Router = require('react-router');
 var EntityMap = require('components/EntityMap');
 var SensorDetail = require('components/SensorDetail');
 var $ = require('jquery');
+var AppConstants = require('constants/AppConstants');
 var util = require('utils/util');
 var api = require('utils/api');
 var mapc = require('utils/map_common');
@@ -15,6 +16,8 @@ var api = require('utils/api');
 var toastr = require('toastr');
 var mui = require('material-ui'),
   FlatButton = mui.FlatButton,
+  RaisedButton = mui.RaisedButton,
+  FontIcon = mui.FontIcon,
   DatePicker = mui.DatePicker,
   TimePicker = mui.TimePicker,
   IconMenu = mui.IconMenu,
@@ -98,11 +101,15 @@ export default class Reports extends React.Component {
   }
 
   renderReport(r) {
+    var _download;
+    if (r.status == AppConstants.REPORT_DONE) _download = <a href="javascript:void(0)" onClick={this.download.bind(this, r)}>Download</a>;
+    var status_text = util.findItemById(AppConstants.REPORT_STATUSES, r.status, 'value').label;
     return (
       <li className="list-group-item">
         <span className="title">{ r.title }</span>
-        <a href="javascript:void(0)" onClick={this.download.bind(this, r)}>Download</a>&nbsp;
-        <a href="javascript:void(0)" onClick={this.delete.bind(this, r)}><i className="fa fa-trash"></i></a>
+        <span className="sub">{ status_text }</span>
+        { _download }
+        &nbsp;<a href="javascript:void(0)" onClick={this.delete.bind(this, r)}><i className="fa fa-trash"></i></a>
         <span className="sub right" data-ts={r.ts_created}></span>
       </li>
       )
@@ -121,6 +128,34 @@ export default class Reports extends React.Component {
 
         <h2>Generate Report</h2>
         <Tabs>
+          <Tab label="Records">
+
+            <br/>
+            <div className="alert alert-info">Generate a report of all raw records for all sensors. To generate a report
+            for a particular sensor, go to the data viewer and choose 'export'</div>
+
+            <div className="row">
+              <div className="col-sm-6">
+                <DatePicker onChange={this.changeHandlerNilVal.bind(this, 'form', 'start')} value={form.start} autoOk={true} hintText="From" />
+              </div>
+              <div className="col-sm-6">
+                <DatePicker onChange={this.changeHandlerNilVal.bind(this, 'form', 'end')} value={form.end} autoOk={true} hintText="End" />
+              </div>
+            </div>
+
+            <div className="row">
+              <div className="col-sm-6">
+                <TextField hint="Columns" floatingLabelText="Columns (comma separated)" onChange={this.changeHandler.bind(this, 'form', 'columns')} value={form.columns} />
+              </div>
+              <div className="col-sm-6">
+                <label>Sensor Type (optional)</label>
+                <Select options={sensortype_opts} onChange={this.changeHandlerVal.bind(this, 'form', 'sensortype_id')} value={form.sensortype_id} simpleValue />
+              </div>
+            </div>
+
+            <RaisedButton label="Generate" primary={true} icon={<FontIcon className="material-icons">play_circle_filled</FontIcon>} onClick={this.generate_report.bind(this, 1)} />
+          </Tab>
+
           <Tab label="Alarms">
 
             <div className="row">
@@ -161,6 +196,26 @@ export default class Reports extends React.Component {
             </div>
             <FlatButton label="Generate" onClick={this.generate_report.bind(this, 3)} />
           </Tab>
+
+          <Tab label="API Logs">
+
+            <div className="row">
+              <div className="col-sm-6">
+                <DatePicker onChange={this.changeHandlerNilVal.bind(this, 'form', 'start')} value={form.start} autoOk={true} hintText="From" />
+              </div>
+              <div className="col-sm-6">
+                <DatePicker onChange={this.changeHandlerNilVal.bind(this, 'form', 'end')} value={form.end} autoOk={true} hintText="End" />
+              </div>
+            </div>
+
+            <div className="row">
+              <div className="col-sm-6">
+              </div>
+            </div>
+
+            <FlatButton label="Generate" onClick={this.generate_report.bind(this, 4)} />
+          </Tab>
+
         </Tabs>
       </div>
     );

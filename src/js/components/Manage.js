@@ -110,9 +110,6 @@ export default class Manage extends React.Component {
                 'add_params': {},
                 'unique_key': 'key',
                 'max': 50,
-                'detail_url': function(item) {
-                    return "/admin/sensortype/"+item.key;
-                },
                 getListFromJSON: function(data) { return data.data.sensortypes; },
                 getObjectFromJSON: function(data) { return data.data.sensortype; },
                 onItemCreated: function(item) { SensorTypeActions.manualUpdate(item); }

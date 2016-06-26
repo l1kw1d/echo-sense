@@ -283,10 +283,6 @@ export default class SensorDetail extends React.Component {
       if (can_write) _action_items.push(<MenuItem key="cl_alarms" primaryText="Clear Alarms" onClick={this.handle_clear_alarms.bind(this)} />);
       if (can_write) _action_items.push(<MenuItem key="cl_data" primaryText="Clear Data" onClick={this.handle_clear_data.bind(this)} />);
       if (can_write) _action_items.push(<MenuItem key="associate" primaryText="Associate Processer" onClick={this.handleAssociateClick.bind(this)} />);
-      // Battery UI
-      var _charging_icon;
-      var batt_level_icon = parseInt(s.batt_level * 4);
-      if (s.batt_charging) _charging_icon = <i className="fa fa-bolt"></i>
       var contacts_json = {};
       if (s.contacts != null) contacts_json = JSON.parse(s.contacts);
       var sensortype = this.props.sensor_types[s.sensortype_id];
@@ -304,7 +300,6 @@ export default class SensorDetail extends React.Component {
                 <b>Type:</b> { sensortype ? sensortype.name : "--" }<br/>
                 <b>Created:</b> <span data-ts={s.ts_created}></span><br/>
                 <b>Updated:</b> <span data-ts={s.ts_updated}></span><br/>
-                <span hidden={true}><b>Battery:</b> <span title={s.batt_charging ? "Charging" : "Not Charging"}><i className={"fa fa-battery-"+batt_level_icon}></i> { util.printPercent(s.batt_level) } { _charging_icon }</span></span>
               </small>
             </div>
             <div className="col-sm-3">
@@ -322,7 +317,7 @@ export default class SensorDetail extends React.Component {
           <div className="well">
             <div className="row">
               <div className="col-sm-6">
-                <h4>Analyses (<Link to={`/app/analysis/viewer?skn=${s.kn}`}>history</Link>)</h4>
+                <h4>Analyses (<Link to={`/app/processing/viewer?skn=${s.kn}`}>history</Link>)</h4>
                 <ul className="list-group">
                   { _analyses }
                 </ul>
