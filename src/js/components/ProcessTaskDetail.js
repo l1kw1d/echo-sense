@@ -133,13 +133,19 @@ export default class ProcessTaskDetail extends React.Component {
     this.setState({form: form});
   }
 
+  duplicate_processer(i) {
+    var form = this.state.form;
+    var new_processer = clone(form.spec.processers[i]);
+    form.spec.processers.push(new_processer);
+    this.setState({form: form});
+  }
+
   spec_change(index, prop, e) {
     var val = e.target.value;
     var form = this.state.form;
     var processer = form.spec.processers[index];
     if (processer) {
       processer[prop] = val;
-      console.log(prop + " >> " + val);
       this.setState({form: form});
     }
   }
@@ -166,7 +172,7 @@ export default class ProcessTaskDetail extends React.Component {
         if (spec != null && spec.processers != null) {
           _processers = spec.processers.map((processer, i) => {
             return (
-              <div className="well">
+              <div className="well" key={i}>
                 <div className="row">
                   <div className="col-sm-4">
                     <TextField floatingLabelText="Analysis Key Pattern" value={processer.analysis_key_pattern || ""} onChange={this.spec_change.bind(this, i, 'analysis_key_pattern')} fullWidth />
@@ -175,7 +181,14 @@ export default class ProcessTaskDetail extends React.Component {
                     <TextField floatingLabelText="Column" value={processer.column || ""} onChange={this.spec_change.bind(this, i, 'column')} fullWidth />
                   </div>
                   <div className="col-sm-4">
-                    <IconButton iconClassName="material-icons" onClick={this.remove_processer.bind(this, i)} tooltip="Remove">delete</IconButton>
+
+                    <div className="pull-right">
+                      <IconMenu iconButtonElement={<IconButton><FontIcon className="material-icons">more_vert</FontIcon> /></IconButton>}>
+                        <MenuItem primaryText="Remove" onClick={this.remove_processer.bind(this, i)} leftIcon={<FontIcon className="material-icons">delete</FontIcon>} />
+                        <MenuItem primaryText="Duplicate" onClick={this.duplicate_processer.bind(this, i)} leftIcon={<FontIcon className="material-icons">content_copy</FontIcon>} />
+                      </IconMenu>
+                    </div>
+
                   </div>
                   <div className="col-sm-12">
                     <TextField floatingLabelText="Calculation" value={processer.calculation || ""} onChange={this.spec_change.bind(this, i, 'calculation')} fullWidth />
