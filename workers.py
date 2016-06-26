@@ -227,7 +227,6 @@ class SensorProcessWorker(object):
             if expr and col:
                 ep = ExpressionParser(expr, col, analysis=a, run_ms=run_ms)
                 res = ep.run(record_list=records, alarm_list=self.new_alarms)
-                print "Setting column %s to %s" % (col, res)
                 a.setColumnValue(col, res)
 
 
