@@ -66,6 +66,7 @@ class UtilTestCase(BaseTestCase):
         r.setColumnValue("x", x)
         r.setColumnValue("y", y)
         r.setColumnValue("z", z)
+        now_ms = tools.unixtime()
         volley = [
             ["1 + 1", (1 + 1) ],
             ["1 + 1 + 5", (1 + 1 + 5) ],
@@ -74,7 +75,7 @@ class UtilTestCase(BaseTestCase):
             ["2^3", (pow(2,3)) ],
             ["(8/2)*3 + 9", ((8/2)*3 + 9) ],
             ["[x]^2", (pow(x,2))],
-            ["SQRT([x]^2 + [y]^2)", ( math.sqrt(pow(x,2)+pow(y,2)) )],
+            ["SQRT([x]^2 + [y]^2)", math.sqrt(pow(x,2)+pow(y,2)) ],
             ["5 > 2", True],
             ["5 > 6", False],
             ["(3*5) < 20", True],
@@ -89,6 +90,7 @@ class UtilTestCase(BaseTestCase):
             ["1==1 OR (1==1 AND 1==0)", True],
             ["1 == 2 OR [x] > 100 OR [x] > 1", True],
             ["1==2 OR 1==1 OR 1==4 OR 1==5", True],
+            ["SINCE(1467011405000)", now_ms - 1467011405000],
             ["SQRT([x]^2 + [y]^2)", ( math.sqrt(pow(x,2)+pow(y,2)) )],
             ["SQRT([x]^2 + [y]^2 + 8^2)", ( math.sqrt(pow(x,2)+pow(y,2)+pow(8,2))) ],
             ["SQRT([x]^2 + [y]^2 + [z]^2)", ( math.sqrt(pow(x,2)+pow(y,2)+pow(z,2))) ]
@@ -98,7 +100,7 @@ class UtilTestCase(BaseTestCase):
             expr = v[0]
             target = v[1]
             tick = datetime.now()
-            ep = ExpressionParser(expr, verbose=True)
+            ep = ExpressionParser(expr, verbose=True, run_ms=now_ms)
             result = ep.run(r)
             tock = datetime.now()
             diff = tock - tick

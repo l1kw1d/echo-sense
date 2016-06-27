@@ -193,12 +193,15 @@ class ExpressionParser(object):
             now = self.run_ms
             try:
                 if event:
-                    if event.kind() == 'Alarm':
+                    if type(event) in [long, float]:
+                        # Treat as ms timestamp
+                        since = now - event
+                    elif event.kind() == 'Alarm':
                         since = now - tools.unixtime(event.dt_start)
                     elif event.kind() == 'Record':
                         since = now - tools.unixtime(event.dt_recorded)
             except Exception, e:
-                logging.debug("Error in SINCE() - %s" % e)
+                logging.warning("Error in SINCE() - %s" % e)
             return since
         elif fnName == "LAST_ALARM":
             # Takes optional argument of rule ID to filter alarms
