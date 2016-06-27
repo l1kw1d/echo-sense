@@ -251,10 +251,6 @@ export default class SensorDetail extends React.Component {
     } else {
       var _alarms = this.state.alarms.map(function(a, i, arr) {
         var buffer = AppConstants.DATA_WINDOW_BUFFER_MS;
-        // var query = {
-        //   'sta': a.ts_start - buffer,
-        //   'end': a.ts_end + buffer
-        // }
         return <li className="list-group-item" key={"a"+i}>
           <span className="title">{ a.rule_name }</span>
           <span className="sub" data-ts={a.ts_start}></span>
@@ -272,7 +268,7 @@ export default class SensorDetail extends React.Component {
         if (p.narrative_last_run) detail += " Narrative: " + p.narrative_last_run;
         return (
         <li className="list-group-item" title={detail} key={"p"+i}>
-          <span className="title">{ p.label }</span>
+          <span className="title">{ p.process_task_label }</span>
           <span className="sub">{ this.PROCESS_STATUS_LABELS[p.status_last_run] }</span>
           <a href="javascript:void(0)" className="right" hidden={!can_write} onClick={this.runProcesser.bind(this, p)}><i className="fa fa-play"/></a>
           <a href="javascript:void(0)" className="right red" hidden={!can_write} onClick={this.deleteProcesser.bind(this, p)} style={{marginRight: "5px"}}><i className="fa fa-trash"/></a>

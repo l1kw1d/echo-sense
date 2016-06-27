@@ -1284,6 +1284,7 @@ class SensorProcessTask(db.Model):
         return {
             'key': str(self.key()),
             'label': str(self),
+            'process_task_label': self.process.label, # Inefficient
             'ts_last_run': tools.unixtime(self.dt_last_run),
             'ts_last_record': tools.unixtime(self.dt_last_record),
             'status_last_run': self.status_last_run,

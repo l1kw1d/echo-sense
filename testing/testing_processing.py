@@ -218,6 +218,7 @@ class ProcessingTestCase(BaseTestCase):
         alarms = Alarm.Fetch(self.vehicle_1, self.brake_alarm)
         self.assertEqual(len(alarms), 2)
 
+
     def testAlarmPeriodLimit(self):
         # Create hard braking (boolean) alarm
         self.brake_rule = Rule.Create(self.e)

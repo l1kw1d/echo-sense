@@ -1,14 +1,7 @@
 import sys
 from os import path
-sys.path.append( path.dirname( path.dirname( path.dirname( path.abspath(__file__) ) ) ) )
+import numpy as np
 
-from expressionParser import ExpressionParser
+ts = [1467038416442, 1467038416452, 1467038416462, 1467038416472, 1467038416482, 1467038416492, 1467038416502, 1467038416512, 1467038416522, 1467038416532]
+y = [0, 0, 1, 1, 1, 1, 0, 0, 0, None]
 
-records = [
-	{ 'speed': 3 },
-	{ 'speed': 4 },
-	{ 'speed': 9 }	
-]
-analysis_key = ""
-expr = ". + 3"
-column = "speed"

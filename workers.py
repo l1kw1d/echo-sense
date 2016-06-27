@@ -134,6 +134,16 @@ class SensorProcessWorker(object):
         return batch
 
     def runBatch(self, records):
+        '''Run processing on batch of records.
+
+        Processing has two main steps:
+            1) Processing each record and firing alarms if any of the tasks'
+                rule conditions are met.
+            2) For each processer defined, calculate the value as defined by
+                the expressions, and update an analysis object with the specified
+                key name.
+
+        '''
         # Standard processing (alarms)
         self.new_alarms = []
         for record in records:

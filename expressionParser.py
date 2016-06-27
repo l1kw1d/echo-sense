@@ -40,7 +40,9 @@ class ExpressionParser(object):
         "SQRT",
         "SINCE",
         "LAST_ALARM",
-        "NOW"
+        "NOW",
+        "DOT",
+        "DELTA"
     ]
 
     def __init__(self, expr, column=None, analysis=None, run_ms=0, verbose=False):
@@ -75,7 +77,7 @@ class ExpressionParser(object):
         if not self.record_list:
             raise Exception("Can't evaluate aggregate column without record list")
         res = [r.columnValue(column) for r in self.record_list]
-        return res
+        return [res]
 
     def __evalSingleColumn(self, toks):
         column = toks[0]
@@ -144,6 +146,14 @@ class ExpressionParser(object):
     def __evalConstant(self, toks):
         return float(toks[0])
 
+    def __getArglist(self, args):
+        if type(args) is list:
+            first = args[0]
+            if type(first) is list:
+                return first
+            return args
+        return []
+
     def __evalFunction(self, toks):
         val = toks[0]
         fnName = val[0].upper()
@@ -152,16 +162,30 @@ class ExpressionParser(object):
         if not args:
             return 0
         if fnName == 'SUM':
-            return sum(args)
+            args = self.__getArglist(args)
+            if args:
+                return [sum(args)]
+            return 0
         elif fnName == 'AVE':
             from tools import average
-            return average(args)
+            args = self.__getArglist(args)
+            if args:
+                return [average(args)]
+            return 0
         elif fnName == 'MAX':
-            return max(args)
+            args = self.__getArglist(args)
+            if args:
+                res = max(args)
+                return [res]
+            return 0
         elif fnName == "MIN":
-            return min(args)
+            args = self.__getArglist(args)
+            if args:
+                return [min(args)]
+            return 0
         elif fnName == "COUNT":
-            return len(args)
+            args = self.__getArglist(args)
+            return [len(args)]
         elif fnName == "ALARMS":
             from models import Alarm
             # Usage: ALARMS([rule_id])
@@ -174,8 +198,8 @@ class ExpressionParser(object):
             return alarm_list
         elif fnName == "DISTANCE":
             dist = 0
-            # self.prior_batch_last_record.columnValue()
             last_gp = None
+            args = self.__getArglist(args)
             for gp in args:
                 gp = tools.safe_geopoint(gp)
                 if last_gp and gp:
@@ -196,6 +220,8 @@ class ExpressionParser(object):
                     if type(event) in [long, float]:
                         # Treat as ms timestamp
                         since = now - event
+                    elif isinstance(event, basestring):
+                        pass
                     elif event.kind() == 'Alarm':
                         since = now - tools.unixtime(event.dt_start)
                     elif event.kind() == 'Record':
@@ -218,9 +244,36 @@ class ExpressionParser(object):
                     last_alarm = sorted(alarm_list, key=lambda al : al.dt_end, reverse=True)[0]
                 else:
                     last_alarm = self.analysis.sensor.alarm_set.order("-dt_end").get()
-            return last_alarm
+            return [last_alarm]
         elif fnName == "NOW":
             return self.run_ms
+        elif fnName == "DOT":
+            # Calculate dot product. Args 1 and 2 must be numeric aggregate/lists of same size.
+            res = 0
+            print args
+            if len(args) == 2:
+                if type(args[0]) is list and type(args[1]) is list:
+                    import numpy as np
+                    res = np.dot(args[0], args[1])
+            return [res]
+        elif fnName == "DELTA":
+            # Calculate delta between each item in an array.
+            # Input: X = [1,2,2,2,5,6]
+            # Delta: [2-1, 2-2, 2-2, 5-2, 6-5]
+            # Result: [1, 0, 0, 3, 1]
+            res = 0
+            li = args[0]
+            if type(li) is list:
+                res = []
+                for i, item in enumerate(li):
+                    diff = 0 # TODO: Correct handling of edge diff (not actually 0)
+                    if i+1 < len(li):
+                        next = li[i+1]
+                        diff = next - item
+                    res.append(diff)
+                return [res]
+            else:
+                return [None]
         return 0
 
 

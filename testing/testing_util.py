@@ -57,59 +57,6 @@ class UtilTestCase(BaseTestCase):
             out = tools.safe_number(_in)
             self.assertEqual(out, _expect)
 
-    def testExpressionParsing(self):
-        from models import Record
-        r = Record()
-        x = 5
-        y = -2
-        z = 3.5
-        r.setColumnValue("x", x)
-        r.setColumnValue("y", y)
-        r.setColumnValue("z", z)
-        now_ms = tools.unixtime()
-        volley = [
-            ["1 + 1", (1 + 1) ],
-            ["1 + 1 + 5", (1 + 1 + 5) ],
-            ["2 * 8 + 3", (2*8) + 3 ],
-            ["4 + 5 * 2", 4 + (5*2)],
-            ["2^3", (pow(2,3)) ],
-            ["(8/2)*3 + 9", ((8/2)*3 + 9) ],
-            ["[x]^2", (pow(x,2))],
-            ["SQRT([x]^2 + [y]^2)", math.sqrt(pow(x,2)+pow(y,2)) ],
-            ["5 > 2", True],
-            ["5 > 6", False],
-            ["(3*5) < 20", True],
-            ["[x] > 100", False],
-            ["(3*5) < 20 AND [x] > 100", False],
-            ["(3*5) < 20 AND [x] > 0 AND [x] > 1", True],
-            ["1==1 OR 1==3 AND 2==0", True],
-            ["(1==1 OR 1==3) AND 2==2", True],
-            ["(1==2 AND 1==3) OR 2==2", True],
-            ["(1==1 OR 1==1) AND 1==0", False],
-            ["1==1 OR 1==1 AND 1==0", True], # And first
-            ["1==1 OR (1==1 AND 1==0)", True],
-            ["1 == 2 OR [x] > 100 OR [x] > 1", True],
-            ["1==2 OR 1==1 OR 1==4 OR 1==5", True],
-            ["SINCE(1467011405000)", now_ms - 1467011405000],
-            ["SQRT([x]^2 + [y]^2)", ( math.sqrt(pow(x,2)+pow(y,2)) )],
-            ["SQRT([x]^2 + [y]^2 + 8^2)", ( math.sqrt(pow(x,2)+pow(y,2)+pow(8,2))) ],
-            ["SQRT([x]^2 + [y]^2 + [z]^2)", ( math.sqrt(pow(x,2)+pow(y,2)+pow(z,2))) ]
-        ]
-
-        for v in volley:
-            expr = v[0]
-            target = v[1]
-            tick = datetime.now()
-            ep = ExpressionParser(expr, verbose=True, run_ms=now_ms)
-            result = ep.run(r)
-            tock = datetime.now()
-            diff = tock - tick
-            ms = diff.microseconds/1000
-            logmessage = "%s took %d ms" % (expr, ms)
-            if ms > 100:
-                logmessage += " <<<<<<<<<<<<<<<<<<<<<<<<<<< SLOW OP!"
-            print logmessage
-            self.assertEqual(result, target)
 
     def testTextSanitization(self):
         # Remove non-ascii
