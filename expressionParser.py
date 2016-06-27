@@ -76,7 +76,10 @@ class ExpressionParser(object):
         column = toks[0]
         if not self.record_list:
             raise Exception("Can't evaluate aggregate column without record list")
-        res = [r.columnValue(column) for r in self.record_list]
+        if column == 'ts':
+            res = [tools.unixtime(r.dt_recorded) for r in self.record_list]
+        else:
+            res = [r.columnValue(column) for r in self.record_list]
         return [res]
 
     def __evalSingleColumn(self, toks):
