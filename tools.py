@@ -75,6 +75,21 @@ def truncate(value, chars=40):
     else:
         return ""
 
+def average(values, _round=True):
+    """Computes the arithmetic mean of a list of numbers.
+
+    >>> print average([20, 30, 70])
+    40.0
+    """
+    if len(values):
+        if _round:
+            values=[int(round(float(v))) for v in values]
+        else:
+            values = [float(v) for v in values]
+        return sum(values, 0.0) / len(values)
+    else:
+        return None
+
 def clone_entity(e, **extra_args):
     """Clones an entity, adding or overriding constructor attributes.
 

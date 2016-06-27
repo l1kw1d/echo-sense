@@ -351,7 +351,7 @@ class SensorAPI(handlers.JsonRequestHandler):
         success = False
         message = None
         with_records = self.request.get_range('with_records', default=50)
-        with_alarms = self.request.get_range('with_alarms', default=50)
+        with_alarms = self.request.get_range('with_alarms', default=20)
         with_analyses = self.request.get_range('with_analyses', default=50)
         with_processers = self.request.get_range('with_processers') == 1
         with_sensortype = self.request.get_range('with_sensortype') == 1

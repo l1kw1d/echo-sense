@@ -22,7 +22,6 @@ def send_gcm_message(payload, users=None, collapse=None):
 
 def send_email(to, subject, body, signoff=None):
     if to:
-        logging.info("Sending email to %s" % (to))
         subject = EMAIL_PREFIX + subject
         subject = tools.truncate(subject, 40)
         if signoff:
@@ -57,7 +56,6 @@ def send_sms(enterprise, phone, message):
             logging.debug(response.content)
 
 def send_message(user, message, **additional_params):
-    logging.info("Trying to send message to %s: %s" % (user, message))
     if user.alert_channel == CHANNEL.SMS and user.phone:
         phone = tools.standardize_phone(user.phone)
         if phone:

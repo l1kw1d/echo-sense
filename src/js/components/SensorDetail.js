@@ -210,7 +210,13 @@ export default class SensorDetail extends React.Component {
   }
 
   handle_clear_data() {
-    this.delete_sensor_data();
+    var prompt = 'Really clear data? This is performed in batches, ' +
+      'so this action may need to be run multiple times for large datasets.';
+    bootbox.confirm(prompt, (result) => {
+      if (result) {
+        this.delete_sensor_data();
+      }
+    });
   }
 
   delete_alarms(rule) {
@@ -227,12 +233,7 @@ export default class SensorDetail extends React.Component {
   }
 
   delete_sensor_data() {
-    var that = this;
-    api.post("/api/sensor/"+that.state.sensor.kn+"/action/delete_all_records", {}, function(res) {
-      if (res.success) {
-        if (res.message) toastr.info(res.message);
-      }
-    });
+    api.post("/api/sensor/"+this.state.sensor.kn+"/action/delete_all_records", {});
   }
 
   handle_contacts_change(contacts_json) {

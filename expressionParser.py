@@ -46,8 +46,9 @@ class ExpressionParser(object):
     ]
 
     def __init__(self, expr, column=None, analysis=None, run_ms=0, verbose=False):
-        logging.debug("Building expression parser for %s" % expr)
         self.verbose = verbose
+        if self.verbose:
+            logging.debug("Building expression parser for %s" % expr)
         self.expr = expr
         self.column = column
         self.analysis = analysis
@@ -79,7 +80,7 @@ class ExpressionParser(object):
         if column == 'ts':
             res = [tools.unixtime(r.dt_recorded) for r in self.record_list]
         else:
-            res = [r.columnValue(column) for r in self.record_list]
+            res = [r.columnValue(column, 0) for r in self.record_list]
         return [res]
 
     def __evalSingleColumn(self, toks):
@@ -253,7 +254,6 @@ class ExpressionParser(object):
         elif fnName == "DOT":
             # Calculate dot product. Args 1 and 2 must be numeric aggregate/lists of same size.
             res = 0
-            print args
             if len(args) == 2:
                 if type(args[0]) is list and type(args[1]) is list:
                     import numpy as np
@@ -349,7 +349,7 @@ class ExpressionParser(object):
                     logging.error(" "*(err.column-1) + "^")
                     logging.error(err)
             except Exception, err:
-                logging.error("Other error occurred: %s" % err)
+                logging.error("Other error occurred in parse_it: %s" % err)
             else:
                 if self.verbose:
                     logging.debug("%s -> %s" % (self.expr, L[0]))

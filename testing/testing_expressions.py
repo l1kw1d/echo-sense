@@ -86,10 +86,12 @@ class UtilTestCase(BaseTestCase):
         record_list = []
         start_ms = tools.unixtime()
         ts_data = [start_ms+x for x in range(0,100,10)] # 10 ms apart
+        x_data = [4,5,6,7,5,2,1,0,1,4]
         y_data = [0,0,1,1,1,1,0,0,0,0]
-        for i, ts, y in zip(range(10), ts_data, y_data):
+        for i, ts, x, y in zip(range(10), ts_data, x_data, y_data):
             r = Record()
             r.setColumnValue("_ts", ts)
+            r.setColumnValue("x", x)
             r.setColumnValue("y", y)
             record_list.append(r)
         now_ms = tools.unixtime()
@@ -98,6 +100,7 @@ class UtilTestCase(BaseTestCase):
             ["DOT({_ts},{y})", np.dot(ts_data, y_data)],
             ["MAX({y})", max(y_data)],
             ["MIN({y})", 0],
+            ["AVE({x})", tools.average(x_data)],
             ["COUNT({y})", 10],
             ["DOT(DELTA({_ts}), {y})", 40] # 40ms
         ]
