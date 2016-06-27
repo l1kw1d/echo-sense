@@ -1,5 +1,5 @@
 application: echo-sense
-version: 0-45
+version: 0-45-3
 runtime: python27
 api_version: 1
 threadsafe: true
@@ -60,6 +60,8 @@ libraries:
 - name: jinja2
   version: "2.6"
 - name: ssl
+  version: "latest"
+- name: numpy
   version: "latest"
 
 skip_files:

@@ -89,17 +89,17 @@ class UtilTestCase(BaseTestCase):
         y_data = [0,0,1,1,1,1,0,0,0,0]
         for i, ts, y in zip(range(10), ts_data, y_data):
             r = Record()
-            r.setColumnValue("ts", ts)
+            r.setColumnValue("_ts", ts)
             r.setColumnValue("y", y)
             record_list.append(r)
         now_ms = tools.unixtime()
         import numpy as np
         volley = [
-            ["DOT({ts},{y})", np.dot(ts_data, y_data)],
+            ["DOT({_ts},{y})", np.dot(ts_data, y_data)],
             ["MAX({y})", max(y_data)],
             ["MIN({y})", 0],
             ["COUNT({y})", 10],
-            ["DOT(DELTA({ts}), {y})", 40] # 40ms
+            ["DOT(DELTA({_ts}), {y})", 40] # 40ms
         ]
 
         for v in volley:
