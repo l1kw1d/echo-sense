@@ -150,6 +150,10 @@ def is_valid_email(email):
     email_re = r"[^@]+@[^@]+\.[^@]+"
     return True if re.match(email_re, email) else False
 
+def is_numeric(obj):
+    attrs = ['__add__', '__sub__', '__mul__', '__div__', '__pow__']
+    return all(hasattr(obj, attr) for attr in attrs)
+
 def validate_newval(propname, newval):
     if propname == "email":
         valid = is_valid_email(newval)

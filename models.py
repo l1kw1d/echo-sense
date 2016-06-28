@@ -1089,7 +1089,7 @@ class Analysis(db.Expando):
         return getattr(self, column, default)
 
     def setColumnValue(self, column, value):
-        # logging.debug("%s: Setting %s to %s (%s)" % (self, column, value, type(value)))
+        logging.debug("%s -> %s" % (column, value))
         self.dt_updated = datetime.now()
         setattr(self, column, value)
 

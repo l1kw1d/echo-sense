@@ -42,9 +42,12 @@ class UtilTestCase(BaseTestCase):
             ["1 + 1 + 5", (1 + 1 + 5) ],
             ["2 * 8 + 3", (2*8) + 3 ],
             ["4 + 5 * 2", 4 + (5*2)],
+            ["40000 / 1000", 40],
             ["2^3", (pow(2,3)) ],
             ["(8/2)*3 + 9", ((8/2)*3 + 9) ],
             ["[x]^2", (pow(x,2))],
+            ["'a' * 3", 0], # Non-numeric, treat as 0
+            ["3.0 * 3", 9],
             ["SQRT([x]^2 + [y]^2)", math.sqrt(pow(x,2)+pow(y,2)) ],
             ["5 > 2", True],
             ["5 > 6", False],
@@ -85,9 +88,9 @@ class UtilTestCase(BaseTestCase):
         from models import Record
         record_list = []
         start_ms = tools.unixtime()
-        ts_data = [start_ms+x for x in range(0,100,10)] # 10 ms apart
+        ts_data = [long(start_ms+x) for x in range(0,10*10*1000,10*1000)] # 10 sec apart
         x_data = [4,5,6,7,5,2,1,0,1,4]
-        y_data = [0,0,1,1,1,1,0,0,0,0]
+        y_data = [0,0,1.0,1.0,1.0,1,0,0,0,0]
         for i, ts, x, y in zip(range(10), ts_data, x_data, y_data):
             r = Record()
             r.setColumnValue("_ts", ts)
@@ -102,7 +105,7 @@ class UtilTestCase(BaseTestCase):
             ["MIN({y})", 0],
             ["AVE({x})", tools.average(x_data)],
             ["COUNT({y})", 10],
-            ["DOT(DELTA({_ts}), {y})", 40] # 40ms
+            ["DOT(DELTA({_ts}), {y}) / 1000", 40] # 40 secs
         ]
 
         for v in volley:

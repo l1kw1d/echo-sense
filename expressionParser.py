@@ -93,12 +93,13 @@ class ExpressionParser(object):
     def __multOp(self, toks):
         value = toks[0]
         _prod = value[0]
-        if type(_prod) not in [int, long, float]:
+        if not tools.is_numeric(_prod):
             # Handle unexpected text addition
             _prod = 0
         for op,val in self.operatorOperands(value[1:]):
             if op == '*': _prod *= val
-            if op == '/': _prod /= val
+            if op == '/':
+                _prod /= val
         return _prod
 
     def __expOp(self, toks):
@@ -349,7 +350,7 @@ class ExpressionParser(object):
                     logging.error(" "*(err.column-1) + "^")
                     logging.error(err)
             except Exception, err:
-                logging.error("Other error occurred in parse_it: %s" % err)
+                logging.error("Other error occurred in parse_it for < %s >: %s" % (self.expr, err))
             else:
                 if self.verbose:
                     logging.debug("%s -> %s" % (self.expr, L[0]))
