@@ -78,6 +78,11 @@ export default class AnalysisDetail extends React.Component {
       content = (
         <div>
           <h1>Analysis - { a.kn }</h1>
+
+          <div>
+            <IconButton iconClassName="material-icons" tooltip="Reload" onClick={this.fetchAnalysis.bind(this)}>refresh</IconButton>
+          </div>
+
           <div>
             <b>Created:</b> <span>{ util.printDate(a.ts_created, true) }</span><br/>
             <b>Updated:</b> <span>{ util.printDate(a.ts_updated, true) }</span><br/>
