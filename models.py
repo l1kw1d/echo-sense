@@ -1092,9 +1092,12 @@ class Analysis(db.Expando):
         # Convert numpy types to standard python
         if type(value).__module__ == 'numpy':
             value = value.item()
-        logging.debug("%s -> %s" % (column, value))
-        self.dt_updated = datetime.now()
-        setattr(self, column, value)
+        if value is not None:
+            logging.debug("%s -> %s" % (column, value))
+            self.dt_updated = datetime.now()
+            setattr(self, column, value)
+        else:
+            logging.warning("Tried to set %s to None" % column)
 
     @staticmethod
     def _key_name(analysis_key_pattern, sensor=None):
