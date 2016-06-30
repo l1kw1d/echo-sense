@@ -121,7 +121,7 @@ export default class Logs extends React.Component {
           <div className="alert alert-warning" style={{marginTop: "10px"}}>Selected Sensor Key: <b>{ sensor_kn }</b> <a href="javascript:void(0)" onClick={this.select_sensor.bind(this, null)}><i className="fa fa-close"/></a></div>
         </div>
 
-        <FetchedList ref="list" key="alarm" url="/api/alarm" params={params} listProp="alarms" renderItem={this.renderAlarm.bind(this)} autofetch={true} />
+        <FetchedList ref="list" key="alarm" url="/api/alarm" params={params} listProp="alarms" renderItem={this.renderAlarm.bind(this)} autofetch={true} paging_enabled={true} per_page={30} />
 
       </div>
     );
