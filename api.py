@@ -704,10 +704,14 @@ class AlarmAPI(handlers.JsonRequestHandler):
         success = False
         message = None
 
-        _max = self.request.get_range('max', max_value=500, default=50)
+        page, _max, offset = tools.paging_params(self.request, limit_default=50)
+        sensor_kn = self.request.get('sensor_kn')
         with_props = self.request.get('with_props', default_value="").split(',')
 
-        alarms = Alarm.Fetch(d['enterprise'], limit=_max)
+        sensor = False
+        if sensor_kn:
+            sensor = Sensor.get_by_key_name(sensor_kn, parent=self.enterprise.key())
+        alarms = Alarm.Fetch(enterprise=d['enterprise'], sensor=sensor, limit=_max, offset=offset)
         if 'sensor_name' in with_props:
             tools.prefetch_reference_properties(alarms, 'sensor')
         success = True

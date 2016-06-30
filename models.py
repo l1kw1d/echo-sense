@@ -1667,7 +1667,7 @@ class Alarm(db.Model):
         if rule.payments_enabled():
             a.request_payments()
         processers = rule.get_processers()
-        logging.debug("### Creating alarm '%s'! ###" % a)
+        logging.debug("### Creating alarm '%s' @ %s! ###" % (a, tools.sdatetime(a.dt_start)))
         return (a, processers)
 
     @staticmethod
@@ -1683,7 +1683,7 @@ class Alarm(db.Model):
         return len(to_delete)
 
     @staticmethod
-    def Fetch(sensor=None, enterprise=None, rule=None, limit=50):
+    def Fetch(sensor=None, enterprise=None, rule=None, limit=50, offset=0):
         if sensor:
             q = sensor.alarm_set.order("-dt_start")
         elif enterprise:
@@ -1692,7 +1692,7 @@ class Alarm(db.Model):
             return []
         if rule:
             q.filter("rule =", rule)
-        return q.fetch(limit=limit)
+        return q.fetch(limit=limit, offset=offset)
 
 
     def deactivate(self):
