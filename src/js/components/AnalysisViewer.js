@@ -198,7 +198,7 @@ export default class AnalysisViewer extends React.Component {
                 var row = [];
                 if (form.chart_type == "Timeline") row = [sensor_label, value || "--", tooltip, start, end];
                 else if (form.chart_type == "ScatterChart") {
-                    var color = util.stringToColor(a.sensor_kn);
+                    var color = util.stringToColor(sensor_label);
                     var point_style = 'point { fill-color: '+color+'; }';
                     tooltip += " (Sensor: "+sensor_label+")";
                     row = [start, value ? parseFloat(value) : 0, point_style, tooltip];

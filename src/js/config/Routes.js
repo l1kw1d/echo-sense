@@ -33,6 +33,10 @@ var Logs = require('components/Logs');
 var AdminManage = require('components/AdminManage');
 var AdminSpoof = require('components/AdminSpoof');
 
+// Account Admin
+var ManageUsers = require('components/ManageUsers');
+var UserDetail = require('components/UserDetail');
+
 var NotFound = require('components/NotFound');
 
 var Router = require('react-router');
@@ -74,6 +78,8 @@ module.exports = (
         <Route path="manage" component={AdminManage}/>
         <Route path="spoof" component={AdminSpoof}/>
       </Route>
+      <Route path="users" component={ManageUsers} />
+      <Route path="users/:userID" component={UserDetail}/>
       <IndexRoute component={Sensors} />
       <Route path="*" component={NotFound}/>
     </Route>

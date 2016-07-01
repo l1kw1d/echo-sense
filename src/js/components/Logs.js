@@ -5,7 +5,7 @@ var FetchedList = require('components/FetchedList');
 var LoadStatus = require('components/LoadStatus');
 var util = require('utils/util');
 var AppConstants = require('constants/AppConstants');
-
+var GroupedSelector = require('components/shared/GroupedSelector');
 var mui = require('material-ui'),
   DropDownMenu = mui.DropDownMenu,
   MenuItem = mui.MenuItem;
@@ -17,7 +17,8 @@ export default class Logs extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      section: "sensors"
+      section: "sensors",
+      additional_params: {}
     };
   }
 
@@ -89,14 +90,42 @@ export default class Logs extends React.Component {
     this.setState({section: section});
   }
 
+  select_sensor(s) {
+    var p = this.state.additional_params;
+    p.sensor_kn = s ? s.kn : null;
+    this.setState({additional_params: p}, () => {
+      this.refs.list.refresh();
+    });
+  }
+
   render() {
     var sensor_update_cutoff = util.nowTimestamp() - 1000*60*30; // last 30 mins
     var content;
     var sec = this.state.section;
     if (sec == "sensors") content = <FetchedList key="sensor" url="/api/sensor" params={{updated_since: sensor_update_cutoff}} listProp="sensors" renderItem={this.renderSensor.bind(this)} autofetch={true}/>
     else if (sec == "process_tasks") content = <FetchedList key="pt" url="/api/sensorprocesstask" listProp="sensorprocesstasks" renderItem={this.renderProcesser.bind(this)} autofetch={true}/>
-    else if (sec == "alarms") content = <FetchedList key="alarm" url="/api/alarm" params={{ with_props: "sensor_name" }} listProp="alarms" renderItem={this.renderAlarm.bind(this)} autofetch={true} />
-    else if (sec == "apilogs") content = <FetchedList key="apilog" url="/api/apilog" ref="fl_logs" listProp="logs" renderItem={this.renderAPILog.bind(this)} autofetch={true} />
+    else if (sec == "alarms") {
+      var params = { with_props: "sensor_name" };
+      var sensor_kn = this.state.additional_params.sensor_kn;
+      if (sensor_kn != null) params.sensor_kn = sensor_kn;
+      content = (
+      <div>
+
+        <p className="lead">Optionally choose a sensor to filter alarms</p>
+
+        <GroupedSelector
+          onItemClick={this.select_sensor.bind(this)}
+          type="sensors" sortProp="ts_updated" />
+
+        <div hidden={sensor_kn == null}>
+          <div className="alert alert-warning" style={{marginTop: "10px"}}>Selected Sensor Key: <b>{ sensor_kn }</b> <a href="javascript:void(0)" onClick={this.select_sensor.bind(this, null)}><i className="fa fa-close"/></a></div>
+        </div>
+
+        <FetchedList ref="list" key="alarm" url="/api/alarm" params={params} listProp="alarms" renderItem={this.renderAlarm.bind(this)} autofetch={true} paging_enabled={true} per_page={30} />
+
+      </div>
+    );
+    } else if (sec == "apilogs") content = <FetchedList key="apilog" url="/api/apilog" ref="fl_logs" listProp="logs" renderItem={this.renderAPILog.bind(this)} autofetch={true} />
     else if (sec == "payments") content = <FetchedList key="payment" url="/api/payment" params={{with_user: 1}} listProp="payments" renderItem={this.renderPayment.bind(this)} autofetch={true} />
     else if (sec == "analyses") content = <FetchedList key="analysis" url="/api/analysis" params={{with_props: 1}} listProp="analyses" renderItem={this.renderAnalysis.bind(this)} autofetch={true} />
     return (

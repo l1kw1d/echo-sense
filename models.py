@@ -183,7 +183,7 @@ class Enterprise(db.Model):
             return e.get_default_sensortype()
         return None
 
-class User(db.Model):
+class User(UserAccessible):
     """
     Key - ID
     """
@@ -1089,9 +1089,15 @@ class Analysis(db.Expando):
         return getattr(self, column, default)
 
     def setColumnValue(self, column, value):
-        # logging.debug("%s: Setting %s to %s (%s)" % (self, column, value, type(value)))
-        self.dt_updated = datetime.now()
-        setattr(self, column, value)
+        # Convert numpy types to standard python
+        if type(value).__module__ == 'numpy':
+            value = value.item()
+        if value is not None:
+            logging.debug("%s -> %s" % (column, value))
+            self.dt_updated = datetime.now()
+            setattr(self, column, value)
+        else:
+            logging.warning("Tried to set %s to None" % column)
 
     @staticmethod
     def _key_name(analysis_key_pattern, sensor=None):
@@ -1284,6 +1290,7 @@ class SensorProcessTask(db.Model):
         return {
             'key': str(self.key()),
             'label': str(self),
+            'process_task_label': self.process.label, # Inefficient
             'ts_last_run': tools.unixtime(self.dt_last_run),
             'ts_last_record': tools.unixtime(self.dt_last_record),
             'status_last_run': self.status_last_run,
@@ -1619,9 +1626,10 @@ class Alarm(db.Model):
     apex = db.FloatProperty()  # Most extreme value during alarm period
     dt_start = db.DateTimeProperty() # Activation
     dt_end = db.DateTimeProperty() # Deactivation
+    is_active = db.BooleanProperty(default=False, indexed=False)
 
     def __repr__(self):
-        return "<Alarm dt_start=%s rule=%s >" % (tools.sdatetime(self.dt_start), self.rule)
+        return "<Alarm dt_start=%s active=%s rule=%s >" % (tools.sdatetime(self.dt_start), self.active(), self.rule)
 
     def __str__(self):
         return self.rule.name
@@ -1634,6 +1642,7 @@ class Alarm(db.Model):
             'id': self.key().id(),
             'ts_start': tools.unixtime(self.dt_start),
             'ts_end': tools.unixtime(self.dt_end),
+            'active': self.active(),
             'rule_name': self.rule.name,
             'rule_id': tools.getKey(Alarm, 'rule', self, asID=True),
             'rule_column': self.rule.column,
@@ -1650,7 +1659,7 @@ class Alarm(db.Model):
     @staticmethod
     def Create(sensor, rule, record, notify=True):
         start = record.dt_recorded
-        a = Alarm(parent=sensor, sensor=sensor, target=sensor.target, rule=rule, enterprise=sensor.enterprise, dt_start=start, dt_end=start, first_record=record)
+        a = Alarm(parent=sensor, sensor=sensor, target=sensor.target, rule=rule, enterprise=sensor.enterprise, dt_start=start, dt_end=start, is_active=True, first_record=record)
         value = record.columnValue(rule.column)
         a.set_apex(value)
         if notify:
@@ -1658,7 +1667,7 @@ class Alarm(db.Model):
         if rule.payments_enabled():
             a.request_payments()
         processers = rule.get_processers()
-        logging.debug("### Creating alarm '%s'! ###" % a)
+        logging.debug("### Creating alarm '%s' @ %s! ###" % (a, tools.sdatetime(a.dt_start)))
         return (a, processers)
 
     @staticmethod
@@ -1674,7 +1683,7 @@ class Alarm(db.Model):
         return len(to_delete)
 
     @staticmethod
-    def Fetch(sensor=None, enterprise=None, rule=None, limit=50):
+    def Fetch(sensor=None, enterprise=None, rule=None, limit=50, offset=0):
         if sensor:
             q = sensor.alarm_set.order("-dt_start")
         elif enterprise:
@@ -1683,11 +1692,14 @@ class Alarm(db.Model):
             return []
         if rule:
             q.filter("rule =", rule)
-        return q.fetch(limit=limit)
+        return q.fetch(limit=limit, offset=offset)
 
-    # TODO: is this used?
-    def deactivate(self, end):
-        self.dt_end = end
+
+    def deactivate(self):
+        self.is_active = False
+
+    def active(self):
+        return self.is_active
 
     def set_apex(self, value):
         '''
@@ -1746,9 +1758,9 @@ class Alarm(db.Model):
             recipients = User.UsersFromSensorContactIDs(self.sensor, self.rule.alert_contacts)
             for recipient in recipients:
                 rendered_message = self.render_alert_message(recipient=recipient)
-                outbox.send_message(recipient, rendered_message, additional_params={
-                    'rule_id': self.rule.key().id()
-                })
+                sensor_key = tools.getKey(Alarm, 'sensor', self, asID=False, keyObj=True)
+                outbox.send_message(recipient, rendered_message, rule_id=self.rule.key().id(),
+                    sensor_key=str(sensor_key))
         return self.rule.alert_contacts
 
     def request_payments(self):

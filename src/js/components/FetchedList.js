@@ -6,6 +6,7 @@ var RefreshIndicator = mui.RefreshIndicator;
 var IconButton = mui.IconButton;
 var List = mui.List;
 var ListItem = mui.ListItem;
+import {clone} from 'lodash';
 var $ = require('jquery');
 
 export default class FetchedList extends React.Component {
@@ -17,6 +18,8 @@ export default class FetchedList extends React.Component {
     subProp: null,
     listStyle: 'list', // or 'mui'
     autofetch: false,
+    per_page: 30,
+    paging_enabled: false,
     renderItem: null // Function
   };
 
@@ -24,7 +27,9 @@ export default class FetchedList extends React.Component {
     super(props);
     this.state = {
       items: [],
-      loading: false
+      loading: false,
+      page: 0,
+      more_data: true
     };
   }
 
@@ -32,18 +37,37 @@ export default class FetchedList extends React.Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
+    var refetch = prevProps.autofetch != this.props.autofetch || prevProps.url != this.props.url;
+    if (refetch) this.refresh();
   }
 
   componentDidMount() {
     if (this.props.autofetch) this.fetchData();
   }
 
+  handle_more() {
+    this.fetchData();
+  }
+
   fetchData() {
-    var that = this;
     if (this.props.url) {
-      api.get(this.props.url, this.props.params, function(res) {
+      var params = clone(this.props.params);
+      if (this.props.paging_enabled) {
+        params.page = this.state.page;
+        params.max = this.props.per_page;
+      }
+      api.get(this.props.url, params, (res) => {
         if (res.success) {
-          that.setState({items: res.data[that.props.listProp]})
+          var fetched_items = res.data[this.props.listProp];
+          var st = {};
+          if (this.props.paging_enabled) {
+            st.items = this.state.items.concat(fetched_items);
+            st.page = params.page + 1;
+            st.more_data = fetched_items != null && fetched_items.length == this.props.per_page;
+          } else {
+            st.items = fetched_items;
+          }
+          this.setState(st)
         }
       });
     }
@@ -54,7 +78,7 @@ export default class FetchedList extends React.Component {
   }
 
   refresh() {
-    this.fetchData();
+    this.setState({items: [], page: 0 }, this.fetchData);
   }
 
   remove_item_by_key(key, _keyProp) {
@@ -105,6 +129,18 @@ export default class FetchedList extends React.Component {
         </List>
         )
     }
+    var n_fetched = this.state.items.length;
+    var load_more_section = (
+      <div className="clearfix vpad" hidden={n_fetched == 0}>
+        <small>{"Showing " + n_fetched + "."}</small>
+        <div hidden={!this.state.more_data || !this.props.paging_enabled}>
+          <button onClick={this.handle_more.bind(this)} disabled={this.state.loading}
+            className="btn btn-default btn-sm">
+            { this.state.loading? <span><i className="fa fa-spin fa-cog"></i> Loading...</span> : 'Load More' }
+          </button>
+        </div>
+      </div>
+    );
 
     return (
       <div>
@@ -117,6 +153,7 @@ export default class FetchedList extends React.Component {
             <span>Nothing to show</span>
           </div>
         </div>
+        { load_more_section }
       </div>
     );
   }

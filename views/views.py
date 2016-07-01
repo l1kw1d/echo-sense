@@ -77,16 +77,6 @@ class Invite(handlers.BaseRequestHandler):
         d['canInvite'] = d['n_invites'] > 0
         self.render_template('invite.html', **d)
 
-class UserDetail(handlers.BaseRequestHandler):
-    @authorized.role()
-    def get(self, id, d):
-        d['u'] = u = User.get_by_id(int(id))
-        d['pg_title'] = str(u)
-        d['editable'] = False
-        d['pickupDays'] = [ {'label': x, 'value': i+1} for i, x in enumerate(DAYS) ]
-        d['pickupTimes'] = [ {'label': PICKUP_TIME.LABELS.get(x), 'value': x} for x in PICKUP_TIME.ALL ]
-        self.render_template("profile.html", **d)
-
 
 def serveResource(self, bk, size=0):
     USE_SERVING_URL = True

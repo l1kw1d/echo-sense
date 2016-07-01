@@ -210,7 +210,13 @@ export default class SensorDetail extends React.Component {
   }
 
   handle_clear_data() {
-    this.delete_sensor_data();
+    var prompt = 'Really clear data? This is performed in batches, ' +
+      'so this action may need to be run multiple times for large datasets.';
+    bootbox.confirm(prompt, (result) => {
+      if (result) {
+        this.delete_sensor_data();
+      }
+    });
   }
 
   delete_alarms(rule) {
@@ -227,12 +233,7 @@ export default class SensorDetail extends React.Component {
   }
 
   delete_sensor_data() {
-    var that = this;
-    api.post("/api/sensor/"+that.state.sensor.kn+"/action/delete_all_records", {}, function(res) {
-      if (res.success) {
-        if (res.message) toastr.info(res.message);
-      }
-    });
+    api.post("/api/sensor/"+this.state.sensor.kn+"/action/delete_all_records", {});
   }
 
   handle_contacts_change(contacts_json) {
@@ -251,10 +252,6 @@ export default class SensorDetail extends React.Component {
     } else {
       var _alarms = this.state.alarms.map(function(a, i, arr) {
         var buffer = AppConstants.DATA_WINDOW_BUFFER_MS;
-        // var query = {
-        //   'sta': a.ts_start - buffer,
-        //   'end': a.ts_end + buffer
-        // }
         return <li className="list-group-item" key={"a"+i}>
           <span className="title">{ a.rule_name }</span>
           <span className="sub" data-ts={a.ts_start}></span>
@@ -272,7 +269,7 @@ export default class SensorDetail extends React.Component {
         if (p.narrative_last_run) detail += " Narrative: " + p.narrative_last_run;
         return (
         <li className="list-group-item" title={detail} key={"p"+i}>
-          <span className="title">{ p.label }</span>
+          <span className="title">{ p.process_task_label }</span>
           <span className="sub">{ this.PROCESS_STATUS_LABELS[p.status_last_run] }</span>
           <a href="javascript:void(0)" className="right" hidden={!can_write} onClick={this.runProcesser.bind(this, p)}><i className="fa fa-play"/></a>
           <a href="javascript:void(0)" className="right red" hidden={!can_write} onClick={this.deleteProcesser.bind(this, p)} style={{marginRight: "5px"}}><i className="fa fa-trash"/></a>

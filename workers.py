@@ -60,12 +60,16 @@ class SensorProcessWorker(object):
                 self._get_or_create_analysis(processer['analysis_key_pattern'])
 
         # Alarm & Condition State
-        self.active_rules = [None for r in self.rules] # One Alarm() for each rule, initialized to Nones
         self.condition_consecutive = [0 for r in self.rules]  # Maintain # of consecutive records where each condition passes
         self.condition_start_ts = [None for r in self.rules]  # Maintain timestamp when condition started passing
         self.recent_alarms = self.fetch_recent_alarms() # List of most recent alarms (if period limited, in period up to limit) for each rule
         self.greatest_rule_diff = [0 for r in self.rules]  # Maintain largest diff (depth out of rule range)
         self.updated_alarm_dict = {}  # Stores alarms needing put upon finish()
+        self.active_rules = []
+        for i, r in enumerate(self.rules):
+            active_alarm = self._recent_active_alarm(i)
+            # One Alarm() for each rule, or None
+            self.active_rules.append(active_alarm)
 
     def _get_or_create_analysis(self, key_pattern):
         a = None
@@ -77,6 +81,14 @@ class SensorProcessWorker(object):
             if a:
                 self.analyses[akn] = a
         return a
+
+    def _recent_active_alarm(self, rule_index):
+        alarms = self.recent_alarms[rule_index]
+        if alarms:
+            alarms = filter(lambda al : al.active(), alarms)
+            if alarms:
+                return alarms[0]
+        return None
 
 
     def last_activation_ts(self, rule_index):
@@ -122,6 +134,16 @@ class SensorProcessWorker(object):
         return batch
 
     def runBatch(self, records):
+        '''Run processing on batch of records.
+
+        Processing has two main steps:
+            1) Processing each record and firing alarms if any of the tasks'
+                rule conditions are met.
+            2) For each processer defined, calculate the value as defined by
+                the expressions, and update an analysis object with the specified
+                key name.
+
+        '''
         # Standard processing (alarms)
         self.new_alarms = []
         for record in records:
@@ -245,7 +267,10 @@ class SensorProcessWorker(object):
                 self.active_rules[i] = alarm
                 self.recent_alarms[i].insert(0, alarm) # Prepend
             elif deactivate:
-                self.active_rules[i] = None
+                ar = self.active_rules[i]
+                if ar:
+                    ar.deactivate()
+                    self.active_rules[i] = None
 
         self.last_record = record
         return alarm

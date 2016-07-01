@@ -40,7 +40,6 @@ config = {
 app = webapp2.WSGIApplication(
      [
       webapp2.Route('/invite', handler=views.Invite, name="vInvite"),
-      webapp2.Route('/users/<id>', handler=views.UserDetail, name="vUserDetail"),
 
       # Admin Actions
       webapp2.Route('/admin/gauth/install', handler=adminActions.Install, name="adminInstall"),
@@ -101,6 +100,7 @@ app = webapp2.WSGIApplication(
       webapp2.Route('/api/target/<id>', handler=api.TargetAPI, handler_method="detail", methods=["GET"], name="TargetAPI"),
       webapp2.Route('/api/user', handler=api.UserAPI, handler_method="list", methods=["GET"], name="UserAPI"),
       webapp2.Route('/api/user', handler=api.UserAPI, handler_method="update", methods=["POST"], name="UserAPI"),
+      webapp2.Route('/api/user/<uid>', handler=api.UserAPI, handler_method="detail", methods=["GET"], name="UserAPI"),
       webapp2.Route('/api/user/delete', handler=api.UserAPI, handler_method="delete", methods=["POST"], name="UserAPI"),
       webapp2.Route('/api/user/photo/upload', handler=api.UploadProfilePhoto, methods=["POST"]),
       webapp2.Route('/api/report', handler=api.ReportAPI, handler_method="list", methods=["GET"]),

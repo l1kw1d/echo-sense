@@ -75,6 +75,21 @@ def truncate(value, chars=40):
     else:
         return ""
 
+def average(values, _round=True):
+    """Computes the arithmetic mean of a list of numbers.
+
+    >>> print average([20, 30, 70])
+    40.0
+    """
+    if len(values):
+        if _round:
+            values=[int(round(float(v))) for v in values]
+        else:
+            values = [float(v) for v in values]
+        return sum(values, 0.0) / len(values)
+    else:
+        return None
+
 def clone_entity(e, **extra_args):
     """Clones an entity, adding or overriding constructor attributes.
 
@@ -134,6 +149,10 @@ def total_seconds(td):
 def is_valid_email(email):
     email_re = r"[^@]+@[^@]+\.[^@]+"
     return True if re.match(email_re, email) else False
+
+def is_numeric(obj):
+    attrs = ['__add__', '__sub__', '__mul__', '__div__', '__pow__']
+    return all(hasattr(obj, attr) for attr in attrs)
 
 def validate_newval(propname, newval):
     if propname == "email":
@@ -808,9 +827,9 @@ def point_within_radius(x,y, center_lat, center_lon, radius_m=1000):
     dist = calcDistance(x, y, center_lat, center_lon)
     return dist <= radius_m
 
-def paging_params(request, limit_param="max", limit_default=30, page_default=0):
+def paging_params(request, limit_param="max", limit_default=30, page_default=0, limit_max=500):
     MAX_OFFSET = 7000
-    max = request.get_range(limit_param, default=limit_default)
+    max = request.get_range(limit_param, default=limit_default, max_value=limit_max)
     page = request.get_range('page', default=page_default)
     if page:
         offset = max * page

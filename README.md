@@ -1,5 +1,8 @@
 # Echo Sense
 
+[![Build Status](https://travis-ci.org/echomobi/echo-sense.svg?branch=develop)](https://travis-ci.org/echomobi/echo-sense)
+[![Stories in Ready](https://badge.waffle.io/echomobi/echo-sense.png?label=ready&title=Ready)](http://waffle.io/echomobi/echo-sense)
+
 Echo Sense is a generic M2M/sensor platform that runs on Google Cloud Platform, and has 4 primary functions:
 
 * Receiving raw data from distributed devices over the internet (or SMS via a gateway)
@@ -197,6 +200,3 @@ Rules, finally, can identify who to contact when they are triggered.
 
 Alarms are produced when rules are triggered. They define a time window during which the rule was triggering. Alarms produce a historical record of important events (triggered by rules) for a given sensor or target.
 
-# WIP
-
-[![Stories in Ready](https://badge.waffle.io/echomobi/echo-sense.png?label=ready&title=Ready)](http://waffle.io/echomobi/echo-sense)

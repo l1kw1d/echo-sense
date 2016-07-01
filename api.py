@@ -159,6 +159,17 @@ class UserAPI(handlers.JsonRequestHandler):
 
 
     @authorized.role('api')
+    def detail(self, uid, d):
+        message = None
+        u = User.GetAccessible(int(uid), self.user)
+        if u:
+            success = True
+        data = {
+            'user': u.json() if u else None
+            }
+        self.json_out(data, success=success, message=message)
+
+    @authorized.role('api')
     def update(self, d):
         success = False
         message = None
@@ -340,7 +351,7 @@ class SensorAPI(handlers.JsonRequestHandler):
         success = False
         message = None
         with_records = self.request.get_range('with_records', default=50)
-        with_alarms = self.request.get_range('with_alarms', default=50)
+        with_alarms = self.request.get_range('with_alarms', default=20)
         with_analyses = self.request.get_range('with_analyses', default=50)
         with_processers = self.request.get_range('with_processers') == 1
         with_sensortype = self.request.get_range('with_sensortype') == 1
@@ -693,10 +704,14 @@ class AlarmAPI(handlers.JsonRequestHandler):
         success = False
         message = None
 
-        _max = self.request.get_range('max', max_value=500, default=50)
+        page, _max, offset = tools.paging_params(self.request, limit_default=50)
+        sensor_kn = self.request.get('sensor_kn')
         with_props = self.request.get('with_props', default_value="").split(',')
 
-        alarms = Alarm.Fetch(d['enterprise'], limit=_max)
+        sensor = False
+        if sensor_kn:
+            sensor = Sensor.get_by_key_name(sensor_kn, parent=self.enterprise.key())
+        alarms = Alarm.Fetch(enterprise=d['enterprise'], sensor=sensor, limit=_max, offset=offset)
         if 'sensor_name' in with_props:
             tools.prefetch_reference_properties(alarms, 'sensor')
         success = True
