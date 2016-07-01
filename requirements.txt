@@ -7,3 +7,4 @@ sphinxcontrib-httpdomain==1.5.0
 webapp2==2.5.2
 python-dateutil==2.1
 lxml==3.6.0
+WebTest==2.0.21
