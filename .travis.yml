@@ -36,5 +36,5 @@ script:
 # Deploy the app
 # - gcloud -q preview app deploy app.yaml --promote
 # Run the unit tests & end to end tests
-- python ./runtests.py $GAE_PYTHONPATH testing/ $module
+- python ./runtests.py ${GAE_PYTHONPATH} testing/ all
 # [END deploy]
