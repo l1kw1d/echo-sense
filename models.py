@@ -303,7 +303,7 @@ class User(UserAccessible):
         if 'email' in params:
             self.email = params['email']
         if 'phone' in params:
-            self.phone = params['phone']
+            self.phone = tools.standardize_phone(params['phone'])
         if 'level' in params:
             self.level = params['level']
         if 'location_text' in params:
