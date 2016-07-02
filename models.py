@@ -445,7 +445,7 @@ class Target(UserAccessible):
         if role == COLUMN.LOCATION:
             gp = db.GeoPt(val)
             if gp.lat or gp.lon:
-                logging.debug("Updating location: %s" % val)
+                logging.debug("Updating target location: %s" % val)
                 self.location = gp
         elif role == COLUMN.COLOR:
             # TODO: Implement - set color based on val/min/max
@@ -727,7 +727,7 @@ class Sensor(UserAccessible):
         if role == COLUMN.LOCATION:
             gp = db.GeoPt(val)
             if gp.lat or gp.lon:
-                logging.debug("Updating location: %s" % val)
+                logging.debug("Updating sensor location: %s" % val)
                 self.location = gp
         elif role == COLUMN.BEARING:
             if int(val) in range(360):
