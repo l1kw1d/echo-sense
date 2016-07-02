@@ -1289,6 +1289,7 @@ class SensorProcessTask(db.Model):
     def json(self):
         return {
             'key': str(self.key()),
+            'kn': self.key().name(),
             'label': str(self),
             'process_task_label': self.process.label, # Inefficient
             'ts_last_run': tools.unixtime(self.dt_last_run),

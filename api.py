@@ -881,8 +881,20 @@ class SensorProcessTaskAPI(handlers.JsonRequestHandler):
         self.json_out(data, success=success, message=message)
 
     @authorized.role('api')
+    def detail(self, kn, d):
+        success = False
+        message = None
+        if kn:
+            spt = SensorProcessTask.get_by_key_name(kn, parent=self.enterprise.key())
+            success = spt is not None
+        self.json_out({
+            'spt': spt.json() if spt else None
+        }, message=message, success=success)
+
+    @authorized.role('api')
     def delete(self, d):
         key = self.request.get('key')
+        message = None
         success = False
         if key:
             spt = SensorProcessTask.get(key)
