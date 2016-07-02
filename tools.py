@@ -603,7 +603,7 @@ def safe_number(str_or_num):
             str_or_num = str_or_num.replace(',','')
         return float(str_or_num)
     except Exception, e:
-        logging.error("Failed to convert %s to number - %s" % (str_or_num, e))
+        logging.error("Failed to convert '%s' to number - %s" % (str_or_num, e))
         return None
 
 def safe_add_task(callable, *args, **kwargs):

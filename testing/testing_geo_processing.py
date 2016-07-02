@@ -337,7 +337,7 @@ class ProcessingTestCase(BaseTestCase):
         MOVE_SIZE = 5 # m
         N_POINTS = 150  # 2 batches in process worker
         DELAY_SECS = 1
-        now = datetime.now()
+        now = datetime.now() - timedelta(minutes=10)
 
         # Populate dummy data with random moves
         total_distance = 0.0
@@ -345,14 +345,13 @@ class ProcessingTestCase(BaseTestCase):
         last_gp = None
         for x in range(N_POINTS):
             locations.append(str(loc))
-            now += timedelta(seconds=DELAY_SECS)
             bearing = random.random()*180
             loc = tools.geoOffset(loc, bearing, MOVE_SIZE/1000.)
             if last_gp:
                 total_distance += MOVE_SIZE
             last_gp = loc
         BATCH_1 = { 'location': locations }
-        self.__createNewRecords(BATCH_1, first_dt=datetime.now())
+        self.__createNewRecords(BATCH_1, first_dt=now)
         self.__runProcessing()
 
         # Confirm analyzed distance

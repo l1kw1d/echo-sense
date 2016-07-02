@@ -68,7 +68,7 @@ class DataInboxTestCase(BaseTestCase):
         MAX_ACCEL = 10
         N_POINTS = 10
         DELAY_SECS = 1
-        now = datetime.now()
+        now = datetime.now() - timedelta(seconds=60)
 
         # Populate dummy data with random moves
         data = []
@@ -110,6 +110,72 @@ class DataInboxTestCase(BaseTestCase):
         # Confirm sensor state update
         self.geosensor1 = Sensor.get(self.geosensor1.key())  # Refetch from db
         self.assertEqual(self.geosensor1.location, db.GeoPt(last_loc))
+
+    def testFutureRecords(self):
+        uri = "/%s/inbox/json/%s" % (self.e.key().id(), TEST_SENSOR_ID)
+        lat = 1.3
+        lon = 36.9
+        MOVE_SIZE = 0.01
+        N_POINTS = 10
+        DELAY_SECS = 1
+        now = datetime.now()
+
+        # Populate dummy data with random moves
+        data = []
+        for x in range(N_POINTS):
+            now += timedelta(seconds=DELAY_SECS)
+            lat += (random.random()-0.5) * MOVE_SIZE
+            lon += (random.random()-0.5) * MOVE_SIZE
+            loc = "%s,%s" % (lat, lon)
+            data.append({
+                'timestamp': tools.unixtime(dt=now) + 1000*60,  # ms (1 minute in future)
+                'location': loc
+            })
+        last_loc = loc
+        body = json.dumps(data)
+        response = self.post(uri, body)
+        self.assertEqual(response.status_int, 200)
+        content = json.loads(response.normal_body)
+        self.assertTrue(content['success'])
+        self.assertEqual(content['data']['count'], N_POINTS)
+
+        # Fetch created records from db
+        records = Record.Fetch(self.geosensor1)
+        # Allowing future creation in buffer, so we should have all 10 records
+        self.assertEqual(len(records), 10)
+
+    def testNonSaneFutureRecords(self):
+        uri = "/%s/inbox/json/%s" % (self.e.key().id(), TEST_SENSOR_ID)
+        lat = 1.3
+        lon = 36.9
+        MOVE_SIZE = 0.01
+        N_POINTS = 10
+        DELAY_SECS = 1
+        now = datetime.now()
+
+        # Populate dummy data with random moves
+        data = []
+        for x in range(N_POINTS):
+            now += timedelta(seconds=DELAY_SECS)
+            lat += (random.random()-0.5) * MOVE_SIZE
+            lon += (random.random()-0.5) * MOVE_SIZE
+            loc = "%s,%s" % (lat, lon)
+            data.append({
+                'timestamp': tools.unixtime(dt=now) + 1000*60*60*24*30,  # Non-sane (1 month in future)
+                'location': loc
+            })
+        last_loc = loc
+        body = json.dumps(data)
+        response = self.post(uri, body)
+        self.assertEqual(response.status_int, 200)
+        content = json.loads(response.normal_body)
+        self.assertTrue(content['success'])
+        self.assertEqual(content['data']['count'], N_POINTS)
+
+        # Fetch created records from db
+        records = Record.Fetch(self.geosensor1)
+        self.assertEqual(len(records), 0) # No records saved, all non-sane
+
 
     def testStateUpdates(self):
         self.geosensor1 = Sensor.get(self.geosensor1.key())  # Refetch from db

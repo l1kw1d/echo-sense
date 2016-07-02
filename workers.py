@@ -40,7 +40,8 @@ class SensorProcessWorker(object):
         self.ent = sensorprocess.enterprise
         self.process = sensorprocess.process
         self.dt_last_run = sensorprocess.dt_last_run
-        self.query = self.sensor.record_set.filter('dt_recorded >', self.dt_last_run).order('dt_recorded')
+        self.dt_last_record = sensorprocess.dt_last_record
+        self.query = self._get_query()
         self.processers = self.process.get_processers()  # JSON array of <processer>
         self.ep = None
         self.analyses = {}
@@ -70,6 +71,12 @@ class SensorProcessWorker(object):
             active_alarm = self._recent_active_alarm(i)
             # One Alarm() for each rule, or None
             self.active_rules.append(active_alarm)
+
+    def _get_query(self):
+        q = self.sensor.record_set \
+            .filter('dt_recorded >', self.dt_last_record) \
+            .order('dt_recorded')
+        return q
 
     def _get_or_create_analysis(self, key_pattern):
         a = None
