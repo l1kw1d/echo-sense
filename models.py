@@ -689,7 +689,7 @@ class Sensor(UserAccessible):
         return res
 
     @staticmethod
-    def Fetch(user, updated_since=None, target_id=None, group_id=None, limit=50, offset=0):
+    def Fetch(user, updated_since=None, target_id=None, group_id=None, order_by=None, limit=50, offset=0):
         e = user.enterprise
         q = Sensor.all().ancestor(e)
         if updated_since:
@@ -698,6 +698,8 @@ class Sensor(UserAccessible):
             q.filter("target =", db.Key.from_path('Target', target_id, parent=e.key()))
         elif group_id:
             q.filter("group_ids =", group_id)
+        elif order_by == 'dt_created':
+            q.order("-dt_created")
         sensors = q.fetch(limit=limit, offset=offset)
         if user.is_admin() or user.is_account_admin():
             # Fetch all sensors in ent

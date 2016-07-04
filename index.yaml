@@ -138,3 +138,9 @@ indexes:
   - name: sensortype
   - name: dt_recorded
     direction: desc
+
+- kind: Sensor
+  ancestor: yes
+  properties:
+  - name: dt_created
+    direction: desc
