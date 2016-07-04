@@ -144,3 +144,9 @@ indexes:
   properties:
   - name: dt_created
     direction: desc
+
+- kind: Alarm
+  properties:
+  - name: rule
+  - name: dt_start
+    direction: desc
