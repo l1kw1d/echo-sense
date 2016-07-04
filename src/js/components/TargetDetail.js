@@ -15,7 +15,10 @@ var toastr = require('toastr');
 var bootbox = require('bootbox');
 var UserStore = require('stores/UserStore');
 var IconMenu = mui.IconMenu;
+var FontIcon = mui.FontIcon;
 var MenuItem = mui.MenuItem;
+var TargetStore = require('stores/TargetStore');
+var TargetActions = require('actions/TargetActions');
 var api = require('utils/api');
 import connectToStores from 'alt/utils/connectToStores';
 import history from 'config/history'
@@ -80,6 +83,16 @@ export default class TargetDetail extends React.Component {
     if (this.props.onClose) this.props.onClose();
   }
 
+  confirm_delete() {
+    bootbox.confirm("Really delete?", (ok) => {
+      if (ok) {
+        var t = this.state.target;
+        TargetActions.delete(t.key);
+        this.props.history.push("/app/targets");
+      }
+    });
+  }
+
   gotoSensor(s) {
     history.pushState(null, `/app/sensors/${s.kn}`);
   }
@@ -100,6 +113,11 @@ export default class TargetDetail extends React.Component {
       content = (
         <div>
           <Link to="/app/targets" className='close'><i className="fa fa-close"></i></Link>
+          <div className="pull-right">
+            <IconMenu iconButtonElement={<IconButton><FontIcon className="material-icons">more_vert</FontIcon> /></IconButton>}>
+              <MenuItem primaryText="Delete" onClick={this.confirm_delete.bind(this)} leftIcon={<FontIcon className="material-icons">delete</FontIcon>} />
+            </IconMenu>
+          </div>
           <h2><i className="fa fa-th-large"/> { t.name } <IconButton iconClassName="fa fa-refresh" tooltip="Refresh" onClick={this.fetchData.bind(this, null)}/></h2>
           <div className="row">
             <div className="col-sm-6">

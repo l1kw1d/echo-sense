@@ -25,12 +25,12 @@ class EchoSenseApp(handlers.BaseRequestHandler):
               "version" : "1",
               "language" : "en",
               "packages": ["table", "timeline"]
-            },
-            {
-                "name": "maps",
-                "version": "3",
-                "language": "en"
             }
+            # {
+            #     "name": "maps",
+            #     "version": "3",
+            #     "language": "en"
+            # }
           ]
         }
         d = kwargs.get('d')

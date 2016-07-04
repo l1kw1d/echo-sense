@@ -693,9 +693,11 @@ class TargetAPI(handlers.JsonRequestHandler):
         target = Target.get(key)
         if target:
             success, message = target.clean_delete()
+            if success:
+                id = target.key().id()
         else:
             message = "Target type not found"
-        self.json_out({}, message=message, success=success)
+        self.json_out({"key": key, "id": id}, message=message, success=success)
 
 
 class AlarmAPI(handlers.JsonRequestHandler):

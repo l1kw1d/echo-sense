@@ -537,6 +537,7 @@ class SensorGroup(UserAccessible):
 
     def clean_delete(self):
         if self.can_delete():
+            self.updateSearchDoc(delete=True)
             self.delete()
             return True
         return False
