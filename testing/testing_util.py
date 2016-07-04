@@ -151,6 +151,37 @@ class UtilTestCase(BaseTestCase):
             inside = tools.point_within_radius(lat, lon, center_lat, center_lon, radius_m=radius)
             self.assertEqual(inside, expect_inside)
 
+    def testRuntimeBatching(self):
+        now = datetime(2016, 4, 3, 12, 2) # April 3 12:02pm
+
+        for i in range(4):
+            new_now = now + i*timedelta(seconds=30)
+            runAt = tools.batched_runtime_with_jitter(now, interval_mins=5,
+                max_jitter_pct=0.0, name_prefix="prefix1")
+            # All scheduled for 12:05pm since no jitter pct
+            self.assertEqual(runAt.minute, 5)
+            self.assertEqual(runAt.hour, 12)
+
+        prefix1_runs = []
+        prefix2_runs = []
+        for i in range(4):
+            new_now = now + i*timedelta(seconds=30)
+            runAt = tools.batched_runtime_with_jitter(now, interval_mins=5,
+                max_jitter_pct=0.2, name_prefix="prefix1")
+            prefix1_runs.append(runAt)
+            runAt = tools.batched_runtime_with_jitter(now, interval_mins=5,
+                max_jitter_pct=0.2, name_prefix="prefix2")
+            prefix2_runs.append(runAt)
+
+        # All prefix1 runs same, between 12:05 and 12:06
+        self.assertEqual(len(set(prefix1_runs)), 1)
+
+        # All prefix2 runs same, between 12:05 and 12:06
+        self.assertEqual(len(set(prefix2_runs)), 1)
+
+        print prefix1_runs
+        print prefix2_runs
+
 
     def tearDown(self):
         pass
