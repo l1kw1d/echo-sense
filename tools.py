@@ -751,20 +751,41 @@ def in_same_period(ms1, ms2, period_type=4):
         ms2_mo_begin = get_first_day(dt_from_ts(ms2))
         return ms1_mo_begin == ms2_mo_begin
 
-def add_batched_task(callable, name_prefix, interval_mins=5, warnOnDuplicate=True, *args, **kwargs):
-    """
-    Callable must be a deferred task
+def batched_runtime_with_jitter(now, interval_mins=5, name_prefix=None, max_jitter_pct=0.0):
+    runAt = now - timedelta(minutes=(now.minute % interval_mins) - interval_mins,
+                             seconds=now.second,
+                             microseconds=now.microsecond)
+    if max_jitter_pct:
+        r = random.Random()
+        r.seed(name_prefix)
+        jitter_secs = interval_mins * 60 * max_jitter_pct * r.random() # always same for same name_prefix
+        runAt += timedelta(seconds=jitter_secs)
+
+    return runAt
+
+def add_batched_task(callable, name_prefix, interval_mins=5, max_jitter_pct=0.0, warnOnDuplicate=True, *args, **kwargs):
+    """Add a task batched to the nearest synchronized interval.
+
     Adds a task batched and scheduled for the next even (synchronized) X minutes
     Tasks with same name already scheduled for this time will not be re-added
     Useful for processing work that should be run exactly once within a certain interval, and do not need
     to be run immediately.
 
     For example, if run at 12:43 with a 5 minute interval, schedule will be for 12:45
+
+    Args:
+        callable: must be a deferred task
+        name_prefix: string to add to task name
+        interval_mins (int): interval for scheduling
+        max_jitter_pct (float, 0.0-1.0): if non-zero, will delay run time by a random amount
+            up to max_jitter_pct% of interval. Randomization is via a hash of name_prefix.
+            Useful for avoiding spikes from multiple tasks with different names running concurrently.
+
     """
     now = datetime.now()
-    runAt = now - timedelta(minutes=(now.minute % interval_mins) - interval_mins,
-                             seconds=now.second,
-                             microseconds=now.microsecond)
+    runAt = batched_runtime_with_jitter(now, interval_mins=interval_mins,
+        max_jitter_pct=max_jitter_pct, name_prefix=name_prefix)
+
     taskName = "bt_%s_%s_%s" % (name_prefix, callable.__name__, unixtime(runAt))
     # logging.debug("Scheduling task for %s - %s" % (runAt, taskName))
     safe_add_task(callable, _name=taskName, _eta=runAt, *args, **kwargs)

@@ -1343,7 +1343,7 @@ class SensorProcessTask(db.Model):
         process = self.process
         if process.can_run_now():
             mins = max([int(process.interval / 60.), 1])
-            tools.add_batched_task(bgRunSensorProcess, str(self.key()), interval_mins=mins, sptkey=str(self.key()))
+            tools.add_batched_task(bgRunSensorProcess, str(self.key()), interval_mins=mins, max_jitter_pct=0.2, sptkey=str(self.key()))
         else:
             logging.info("%s can't run now" % self)
 
