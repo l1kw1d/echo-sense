@@ -358,7 +358,7 @@ class ProcessingTestCase(BaseTestCase):
         a = Analysis.GetOrCreate(self.vehicle_1, ANALYSIS_KEY_PATTERN)
         self.assertIsNotNone(a)
         # Almost equal becuase we miss the distance between batches (FIX)
-        self.assertAlmostEqual(a.columnValue('total_distance'), total_distance, delta=MOVE_SIZE)
+        self.assertAlmostEqual(a.columnValue('total_distance'), total_distance, delta=2*MOVE_SIZE)
 
 
     def tearDown(self):
