@@ -70,6 +70,13 @@ class ExpressionParser(object):
             except StopIteration:
                 break
 
+    def __normalizeNumeric(self, value):
+        if not tools.is_numeric(value):
+            # Handle unexpected text addition
+            value = 0
+        return value
+
+
     def __evalCurrentValue(self, toks):
         return self.analysis.columnValue(self.column, 0)
 
@@ -92,10 +99,7 @@ class ExpressionParser(object):
 
     def __multOp(self, toks):
         value = toks[0]
-        _prod = value[0]
-        if not tools.is_numeric(_prod):
-            # Handle unexpected text addition
-            _prod = 0
+        _prod = self.__normalizeNumeric(value[0])
         for op,val in self.operatorOperands(value[1:]):
             if op == '*': _prod *= val
             if op == '/':
@@ -104,17 +108,14 @@ class ExpressionParser(object):
 
     def __expOp(self, toks):
         value = toks[0]
-        res = value[0]
+        res = self.__normalizeNumeric(value[0])
         for op,val in self.operatorOperands(value[1:]):
             if op == '^': res = pow(res, val)
         return res
 
     def __addOp(self, toks):
         value = toks[0]
-        _sum = value[0]
-        if type(_sum) not in [int, long, float]:
-            # Handle unexpected text addition
-            _sum = 0
+        _sum = self.__normalizeNumeric(value[0])
         for op,val in self.operatorOperands(value[1:]):
             if op == '+': _sum += val
             if op == '-': _sum -= val

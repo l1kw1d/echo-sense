@@ -106,11 +106,19 @@ class ProcessingTestCase(BaseTestCase):
         sensor.dt_updated = datetime.now()
         sensor.put()
         logging.debug("Created %d records" % len(records))
+        if records:
+            return records[-1].dt_recorded # Datetime of last record created
+        else:
+            return None
 
-    def __runProcessing(self):
+    def __runProcessing(self, mock_run_duration_secs=3):
+        now = datetime.now()
         self.sp.run()  # Fires background worker
         # Force completion
         self.execute_tasks_until_empty()
+
+        if mock_run_duration_secs:
+            self.sp.dt_last_run = now + timedelta(seconds=mock_run_duration_secs)
 
     def testCeilingAlarmAndStandardProcessing(self):
         self.process = ProcessTask.Create(self.e)
@@ -143,12 +151,14 @@ class ProcessingTestCase(BaseTestCase):
         self.sp = SensorProcessTask.Create(self.e, self.process, self.vehicle_1)
         self.sp.put()
 
+        START_DT = datetime.now() - timedelta(minutes=5) # 5 mins ago
+
         BATCH_1 = {
             'speed': [0,5,15,35,60,80,83,88,85,78,75,75,76,81,89,92,90,83,78], # We speed twice
             'bearing': [0,0,0,0,5,3,3,3,4,5,0,0,0,0,1,1,2,3,2]
         }
-        self.__createNewRecords(BATCH_1, first_dt=datetime.now() - timedelta(minutes=5))
-        self.__runProcessing()
+        last_dt = self.__createNewRecords(BATCH_1, first_dt=START_DT)
+        self.__runProcessing(mock_run_duration_secs=6)
 
         # Confirm analyzed max speed
         a = Analysis.GetOrCreate(self.vehicle_1, ANALYSIS_KEY_PATTERN)
@@ -173,9 +183,9 @@ class ProcessingTestCase(BaseTestCase):
 
         BATCH_2 = {
             'speed': [76,75,78,73,60],
-            'bearing': [0,0,2,0,5]
+            'bearing': [7,0,2,0,5]
         }
-        self.__createNewRecords(BATCH_2)
+        self.__createNewRecords(BATCH_2, first_dt=last_dt + timedelta(seconds=3))
         self.__runProcessing()
 
         a = Analysis.GetOrCreate(self.vehicle_1, ANALYSIS_KEY_PATTERN)
@@ -385,7 +395,7 @@ class ProcessingTestCase(BaseTestCase):
         BATCH_1 = {
             'agreement': [random.randint(1,5) for x in range(BATCH_SIZE)],
         }
-        self.__createNewRecords(BATCH_1, first_dt=datetime.now(), sensor=self.smartphone_sensor)
+        self.__createNewRecords(BATCH_1, first_dt=datetime.now()-timedelta(minutes=3), sensor=self.smartphone_sensor)
         self.__runProcessing()
 
         # This batch should have fired 3 alarms for any report, and created

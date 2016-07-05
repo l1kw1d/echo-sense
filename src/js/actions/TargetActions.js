@@ -15,6 +15,12 @@ class TargetActions {
 	fetchTargets() {
 	    get(this, "/api/target");
 	}
+
+	delete(key) {
+	    api.post("/api/target/delete", {key: key}, (res) => {
+	    	this.dispatch(res);
+	    });
+	}
 }
 
 module.exports = alt.createActions(TargetActions);

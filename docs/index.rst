@@ -13,33 +13,23 @@ Contents:
 
    actions
    api
-   appengine_config
    authorized
-   cloudstorage
    common
    constants
    decorators
-   django_version
    echosense
    expressionParser
-   gae_python_gcm
    handlers
    inbox
    messages
    models
    oauth2client
    outbox
-   pyparsing
-   pytz
    reports
    runtests
    services
-   settings
    tasks
-   testing
    tools
-   uritemplate
-   user_defined_props
    views
    workers
 

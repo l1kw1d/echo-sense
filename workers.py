@@ -31,7 +31,7 @@ class TooLongError(Exception):
 
 class SensorProcessWorker(object):
 
-    def __init__(self, sensorprocess, batch_size=100):
+    def __init__(self, sensorprocess, batch_size=50):
         self.sensorprocess = sensorprocess
         self.batch_size = batch_size
         self.cursor = None
@@ -40,15 +40,15 @@ class SensorProcessWorker(object):
         self.ent = sensorprocess.enterprise
         self.process = sensorprocess.process
         self.dt_last_run = sensorprocess.dt_last_run
-        self.query = self.sensor.record_set.filter('dt_recorded >', self.dt_last_run).order('dt_recorded')
+        self.dt_last_record = sensorprocess.dt_last_record
+        self.query = self._get_query()
         self.processers = self.process.get_processers()  # JSON array of <processer>
         self.ep = None
         self.analyses = {}
         self.last_record = None
-        logging.debug("Initializing %s" % self)
 
     def __str__(self):
-        return "<SensorProcessWorker last_run=%s />" % (self.dt_last_run)
+        return "<SensorProcessWorker sensor_kn=%s from=%s to=%s />" % (self.sensor.key().name(), self._query_from(), self._query_until())
 
 
     def setup(self):
@@ -70,6 +70,24 @@ class SensorProcessWorker(object):
             active_alarm = self._recent_active_alarm(i)
             # One Alarm() for each rule, or None
             self.active_rules.append(active_alarm)
+
+    def _query_from(self):
+        return self.dt_last_record
+
+    def _query_until(self):
+        return self.start
+
+    def _get_query(self):
+        # Since time of last processed record
+        # Until worker start.
+        # TODO: Should end of range be query of most recent record recorded?
+        # If future data comes in (within buffer), processing may be delayed
+        # with current setup.
+        q = self.sensor.record_set \
+            .filter('dt_recorded >', self._query_from()) \
+            .filter('dt_recorded <=', self._query_until()) \
+            .order('dt_recorded')
+        return q
 
     def _get_or_create_analysis(self, key_pattern):
         a = None
@@ -300,6 +318,7 @@ class SensorProcessWorker(object):
     def run(self):
         self.start = datetime.now()
         self.setup()
+        logging.debug("Running %s" % self)
         try:
             while True:
                 batch = self.fetchBatch()

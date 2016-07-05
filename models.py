@@ -303,7 +303,7 @@ class User(UserAccessible):
         if 'email' in params:
             self.email = params['email']
         if 'phone' in params:
-            self.phone = params['phone']
+            self.phone = tools.standardize_phone(params['phone'])
         if 'level' in params:
             self.level = params['level']
         if 'location_text' in params:
@@ -445,7 +445,7 @@ class Target(UserAccessible):
         if role == COLUMN.LOCATION:
             gp = db.GeoPt(val)
             if gp.lat or gp.lon:
-                logging.debug("Updating location: %s" % val)
+                logging.debug("Updating target location: %s" % val)
                 self.location = gp
         elif role == COLUMN.COLOR:
             # TODO: Implement - set color based on val/min/max
@@ -537,6 +537,7 @@ class SensorGroup(UserAccessible):
 
     def clean_delete(self):
         if self.can_delete():
+            self.updateSearchDoc(delete=True)
             self.delete()
             return True
         return False
@@ -688,7 +689,7 @@ class Sensor(UserAccessible):
         return res
 
     @staticmethod
-    def Fetch(user, updated_since=None, target_id=None, group_id=None, limit=50, offset=0):
+    def Fetch(user, updated_since=None, target_id=None, group_id=None, order_by=None, limit=50, offset=0):
         e = user.enterprise
         q = Sensor.all().ancestor(e)
         if updated_since:
@@ -697,6 +698,8 @@ class Sensor(UserAccessible):
             q.filter("target =", db.Key.from_path('Target', target_id, parent=e.key()))
         elif group_id:
             q.filter("group_ids =", group_id)
+        elif order_by == 'dt_created':
+            q.order("-dt_created")
         sensors = q.fetch(limit=limit, offset=offset)
         if user.is_admin() or user.is_account_admin():
             # Fetch all sensors in ent
@@ -727,7 +730,7 @@ class Sensor(UserAccessible):
         if role == COLUMN.LOCATION:
             gp = db.GeoPt(val)
             if gp.lat or gp.lon:
-                logging.debug("Updating location: %s" % val)
+                logging.debug("Updating sensor location: %s" % val)
                 self.location = gp
         elif role == COLUMN.BEARING:
             if int(val) in range(360):
@@ -786,7 +789,7 @@ class Sensor(UserAccessible):
                             if ts:
                                 last = i == len(records) - 1
                                 try:
-                                    _r = Record.Create(ts, self, r, apply_roles=last, schema=schema, expression_parser_by_col=expression_parser_by_col)
+                                    _r = Record.Create(ts, self, r, apply_roles=last, schema=schema, expression_parser_by_col=expression_parser_by_col, now_ms=now_ts)
                                 except Exception, e:
                                     logging.error("Error creating record: %s" % e)
                                     _r = None
@@ -827,7 +830,7 @@ class Rule(db.Model):
     """
     Parent - Enterprise
     Key - ID
-    Spec of alarm, e.g. speeding, over-heating
+    Conditions during which to fire alarm, e.g. speeding, over-heating, geo-fence
     Can optionally include alerts to send (recipients defined by sensor)
     or payments to make
     """
@@ -1289,6 +1292,7 @@ class SensorProcessTask(db.Model):
     def json(self):
         return {
             'key': str(self.key()),
+            'kn': self.key().name(),
             'label': str(self),
             'process_task_label': self.process.label, # Inefficient
             'ts_last_run': tools.unixtime(self.dt_last_run),
@@ -1341,7 +1345,7 @@ class SensorProcessTask(db.Model):
         process = self.process
         if process.can_run_now():
             mins = max([int(process.interval / 60.), 1])
-            tools.add_batched_task(bgRunSensorProcess, str(self.key()), interval_mins=mins, sptkey=str(self.key()))
+            tools.add_batched_task(bgRunSensorProcess, str(self.key()), interval_mins=mins, max_jitter_pct=0.2, sptkey=str(self.key()))
         else:
             logging.info("%s can't run now" % self)
 
@@ -1564,13 +1568,20 @@ class Record(db.Expando):
             return q.fetch(limit=limit)
 
     @staticmethod
-    def Create(ts, sensor, data, apply_roles=False, schema=None, expression_parser_by_col={}, put=False, allow_future=False):
+    def Create(ts, sensor, data, apply_roles=False, schema=None, expression_parser_by_col={}, put=False, allow_future=False, future_to_now=False, now_ms=None):
+        ACCEPT_FUTURE_BUFFER_SECS = 5*60
         r = None
         if not schema:
             schema = sensor.sensortype.get_schema()
+        if now_ms is None:
+            now_ms = tools.unixtime()
+        ms_ago = now_ms - ts
+        future = ms_ago < 0
+        sane_ts = (not future or allow_future) or ms_ago > -1*ACCEPT_FUTURE_BUFFER_SECS*1000 # Sanity: timestamp in past or up to 5 minutes into future
+        if sane_ts and future and future_to_now:
+            logging.warning("time received is %.1f seconds in future, interpreting as present" % (-1*ms_ago / 1000.))
+            ts = now_ms
         kn = str(int(ts)) # ms
-        ms_ago = tools.unixtime() - ts
-        sane_ts = allow_future or ms_ago > -60*1000 # Sanity: timestamp in past with 60 second buffer
         if not sane_ts:
             logging.warning("Non-sane ts in Record.Create, not creating: %s" % ts)
         else:
@@ -1579,7 +1590,9 @@ class Record(db.Expando):
                 hour = int(minute / 60)
                 targetkey = tools.getKey(Sensor, 'target', sensor, asID=False, keyObj=True)
                 sensortypekey = tools.getKey(Sensor, 'sensortype', sensor, asID=False, keyObj=True)
-                r = Record(key_name=kn, parent=sensor, sensor=sensor, target=targetkey, sensortype=sensortypekey, dt_recorded=tools.dt_from_ts(ts), minute=minute, hour=hour, enterprise=sensor.enterprise)
+                r = Record(key_name=kn, parent=sensor, sensor=sensor, target=targetkey,
+                    sensortype=sensortypekey, dt_recorded=tools.dt_from_ts(ts), minute=minute,
+                    hour=hour, enterprise=sensor.enterprise)
                 # First pass extracts record data as defined by schema, and creates dict of pending calculations
                 calculations = {}
                 for column, colschema in schema.items():

@@ -35,7 +35,6 @@ export default class SensorDetail extends React.Component {
   static defaultProps = { user: null };
   constructor(props) {
     super(props);
-    this.PROCESS_STATUS_LABELS = ["","Never Run","OK","Warning","Error"];
     this.state = {
       sensor: null,
       loading: false,
@@ -253,9 +252,8 @@ export default class SensorDetail extends React.Component {
       var _alarms = this.state.alarms.map(function(a, i, arr) {
         var buffer = AppConstants.DATA_WINDOW_BUFFER_MS;
         return <li className="list-group-item" key={"a"+i}>
-          <span className="title">{ a.rule_name }</span>
+          <Link to={`/app/alarms/${s.kn}/${a.id}`} className="title"><i className="fa fa-warning"></i> { a.rule_name }</Link>
           <span className="sub" data-ts={a.ts_start}></span>
-          <Link to={`/app/alarms/${s.kn}/${a.id}`}><i className="fa fa-warning"></i></Link>
         </li>
       }, this);
       var _analyses = this.state.analyses.map(function(a, i, arr) {
@@ -267,10 +265,11 @@ export default class SensorDetail extends React.Component {
       var _processers = this.state.processers.map(function(p, i, arr) {
         var detail = "Last run: " + util.printDate(p.ts_last_run);
         if (p.narrative_last_run) detail += " Narrative: " + p.narrative_last_run;
+        var status_icon = <i className={AppConstants.PROCESS_STATUS_ICONS[p.status_last_run]}/>
         return (
-        <li className="list-group-item" title={detail} key={"p"+i}>
-          <span className="title">{ p.process_task_label }</span>
-          <span className="sub">{ this.PROCESS_STATUS_LABELS[p.status_last_run] }</span>
+        <li className="list-group-item" key={"p"+i}>
+          <Link to={`/app/sensors/${s.kn}/processtask/${p.kn}`} className="title" title={detail}>{ p.process_task_label }</Link>
+          <span className="sub">{ status_icon } { AppConstants.PROCESS_STATUS_LABELS[p.status_last_run] }</span>
           <a href="javascript:void(0)" className="right" hidden={!can_write} onClick={this.runProcesser.bind(this, p)}><i className="fa fa-play"/></a>
           <a href="javascript:void(0)" className="right red" hidden={!can_write} onClick={this.deleteProcesser.bind(this, p)} style={{marginRight: "5px"}}><i className="fa fa-trash"/></a>
         </li>
@@ -343,6 +342,8 @@ export default class SensorDetail extends React.Component {
             </div>
 
           </div>
+
+          { this.props.children }
 
           <DialogChooser prompt="Choose a processer to associate with this sensor" url="/api/processtask" listProp="processtasks" ref="chooser" onItemChosen={this.associateProcesser.bind(this)} open={this.state.dialogs.chooser_open} onRequestClose={this.hide_show_dialog.bind(this, 'chooser_open', false)} />
 

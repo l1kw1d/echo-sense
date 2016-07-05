@@ -107,11 +107,11 @@ You are now ready to create additional user accounts, sensor types, and sensors.
 
 1. Create a sensor type and give it a name, and define a JSON schema (see models.py@SensorType)
 2. Create a sensor object to match your device's unique ID
-3. Point your device to post raw data to the inbox (/<eid>/inbox/<format>/<sensor_kn>), where:
+3. Point your device to post raw data to the inbox (`/<eid>/inbox/<format>/<sensor_kn>`), where:
 
-* <eid> is the Enterprise ID (long) (the organizational account that's been created)
-* <format> is the short string identifying the format type of incoming data
-* <sensor_kn> is the unique identifier (string) for the device
+* `<eid>` is the Enterprise ID (long) (the organizational account that's been created)
+* `<format>` is the short string identifying the format type of incoming data
+* `<sensor_kn>` is the unique identifier (string) for the device
 
 E.g. POST /1234567890/inbox/json/abc-100
 

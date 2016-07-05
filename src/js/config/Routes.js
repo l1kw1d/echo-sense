@@ -15,6 +15,7 @@ var Sensors = require('components/Sensors');
 var Reports = require('components/Reports');
 var SensorDetail = require('components/SensorDetail');
 var AlarmDetail = require('components/AlarmDetail');
+var SensorProcessTaskDetail = require('components/SensorProcessTaskDetail');
 var RecordDetail = require('components/RecordDetail');
 var AnalysisDetail = require('components/AnalysisDetail');
 var Analyze = require('components/Analyze');
@@ -50,7 +51,9 @@ module.exports = (
     <IndexRoute component={Root} />
     <Route path="app" component={App}>
       <Route path="sensors" component={Sensors}>
-        <Route path=":sensorKn" component={SensorDetail} />
+        <Route path=":sensorKn" component={SensorDetail}>
+          <Route path="processtask/:processtaskKn" component={SensorProcessTaskDetail} />
+        </Route>
       </Route>
       <Route path="targets" component={Targets}>
         <Route path=":targetID" component={TargetDetail} />

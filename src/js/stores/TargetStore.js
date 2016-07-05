@@ -17,6 +17,13 @@ class TargetStore {
         }
     }
 
+    onDelete(res) {
+        if (res.success) {
+            var id = res.data.id;
+            if (id) delete this.targets[id];
+        }
+    }
+
 	// Automatic
 
     manualUpdate(tgt) {

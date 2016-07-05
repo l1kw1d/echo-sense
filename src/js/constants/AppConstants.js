@@ -57,6 +57,14 @@ var AppConstants = {
     { value: 3, label: "Confirmed" },
     { value: 4, label: "Failed" }
   ],
+  PROCESS_STATUS_LABELS: ["","Never Run","OK","Warning","Error"],
+  PROCESS_STATUS_ICONS: [
+    "fa fa-square-o",
+    "fa fa-hourglass",
+    "fa fa-check",
+    "fa fa-warning",
+    "fa fa-ban",
+  ],
   GAP_MINIMUM_SECS: 60,
   DATA_WINDOW_BUFFER_MS: 1000*30,  // 30 secs
   USER_READ: 1,

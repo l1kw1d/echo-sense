@@ -331,6 +331,7 @@ class SensorAPI(handlers.JsonRequestHandler):
         with_records = self.request.get_range('with_records', default=0)
         ms_updated_since = self.request.get_range('updated_since', default=0) # ms
         target_id = self.request.get_range('target_id')
+        order_by = self.request.get('order_by')
         group_id = self.request.get_range('group_id')
 
         updated_since = tools.dt_from_ts(ms_updated_since) if ms_updated_since else None
@@ -338,7 +339,7 @@ class SensorAPI(handlers.JsonRequestHandler):
         if key_names:
             sensors = Sensor.get_by_key_name(key_names.split(','), parent=self.enterprise)
         else:
-            sensors = Sensor.Fetch(d['user'], updated_since=updated_since, target_id=target_id, group_id=group_id, limit=_max, offset=offset)
+            sensors = Sensor.Fetch(d['user'], updated_since=updated_since, target_id=target_id, group_id=group_id, order_by=order_by, limit=_max, offset=offset)
         success = True
 
         data = {
@@ -693,9 +694,11 @@ class TargetAPI(handlers.JsonRequestHandler):
         target = Target.get(key)
         if target:
             success, message = target.clean_delete()
+            if success:
+                id = target.key().id()
         else:
             message = "Target type not found"
-        self.json_out({}, message=message, success=success)
+        self.json_out({"key": key, "id": id}, message=message, success=success)
 
 
 class AlarmAPI(handlers.JsonRequestHandler):
@@ -707,11 +710,14 @@ class AlarmAPI(handlers.JsonRequestHandler):
         page, _max, offset = tools.paging_params(self.request, limit_default=50)
         sensor_kn = self.request.get('sensor_kn')
         with_props = self.request.get('with_props', default_value="").split(',')
-
+        rule_id = self.request.get_range('rule_id')
+        rule = None
         sensor = False
         if sensor_kn:
             sensor = Sensor.get_by_key_name(sensor_kn, parent=self.enterprise.key())
-        alarms = Alarm.Fetch(enterprise=d['enterprise'], sensor=sensor, limit=_max, offset=offset)
+        if rule_id:
+            rule = db.Key.from_path('Rule', rule_id, parent=self.enterprise.key())
+        alarms = Alarm.Fetch(enterprise=d['enterprise'], sensor=sensor, rule=rule, limit=_max, offset=offset)
         if 'sensor_name' in with_props:
             tools.prefetch_reference_properties(alarms, 'sensor')
         success = True
@@ -881,8 +887,20 @@ class SensorProcessTaskAPI(handlers.JsonRequestHandler):
         self.json_out(data, success=success, message=message)
 
     @authorized.role('api')
+    def detail(self, kn, d):
+        success = False
+        message = None
+        if kn:
+            spt = SensorProcessTask.get_by_key_name(kn, parent=self.enterprise.key())
+            success = spt is not None
+        self.json_out({
+            'spt': spt.json() if spt else None
+        }, message=message, success=success)
+
+    @authorized.role('api')
     def delete(self, d):
         key = self.request.get('key')
+        message = None
         success = False
         if key:
             spt = SensorProcessTask.get(key)
