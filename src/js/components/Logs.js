@@ -24,7 +24,7 @@ export default class Logs extends React.Component {
 
   renderSensor(s) {
     return (
-      <li className="list-group-item">
+      <li className="list-group-item" key={s.kn}>
         <Link to={`/app/sensors/${s.kn}`} className="title">{ s.name }</Link>
         <span className="sub">Last Update: <span data-ts={s.ts_updated}></span></span>
       </li>
@@ -33,7 +33,7 @@ export default class Logs extends React.Component {
 
   renderProcesser(p) {
     return (
-      <li className="list-group-item">
+      <li className="list-group-item" key={p.id}>
         <span className="title">{ p.label }</span>
         <span className="sub">Last Run: <span data-ts={p.ts_last_run}></span></span>
       </li>
@@ -42,7 +42,7 @@ export default class Logs extends React.Component {
 
   renderAlarm(a) {
     return (
-      <li className="list-group-item">
+      <li className="list-group-item" key={a.id}>
         <Link to={`/app/alarms/${a.sensor_kn}/${a.id}`} className="title">{ a.rule_name }</Link>
         <span className="sub ital">{ a.sensor_name }</span>
         <span className="sub" data-ts={a.ts_start}></span>
@@ -52,7 +52,7 @@ export default class Logs extends React.Component {
 
   renderAPILog(al) {
     return (
-      <li className="list-group-item">
+      <li className="list-group-item" key={al.id}>
         <span className="title">{ al.path }</span>
         <span className="label label-default">{ al.method }</span>
         <span className="sub">{ al.status }</span>
@@ -66,7 +66,7 @@ export default class Logs extends React.Component {
     var status_text = util.findItemById(AppConstants.PAYMENT_STATUSES, pmnt.status, 'value').label;
     var user_text = pmnt.user ? (pmnt.user.name || pmnt.user.phone) : "--";
     return (
-      <li className="list-group-item">
+      <li className="list-group-item" key={pmnt.id}>
         <span className="title">{ title }</span>
         <span className="label label-default">{ status_text }</span>
         <span className="sub right">{ user_text }</span>
@@ -77,7 +77,7 @@ export default class Logs extends React.Component {
 
   renderAnalysis(a) {
     return (
-      <li className="list-group-item">
+      <li className="list-group-item" key={a.kn}>
         <Link to={`/app/analysis/${a.kn}`} className="title">{ a.kn }</Link>
         <span className="sub">{ a.sensor_id }</span>
         <span className="sub">Created: <span data-ts={a.ts_created}></span></span>

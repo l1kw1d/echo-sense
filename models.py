@@ -830,7 +830,7 @@ class Rule(db.Model):
     """
     Parent - Enterprise
     Key - ID
-    Spec of alarm, e.g. speeding, over-heating
+    Conditions during which to fire alarm, e.g. speeding, over-heating, geo-fence
     Can optionally include alerts to send (recipients defined by sensor)
     or payments to make
     """

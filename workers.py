@@ -31,7 +31,7 @@ class TooLongError(Exception):
 
 class SensorProcessWorker(object):
 
-    def __init__(self, sensorprocess, batch_size=100):
+    def __init__(self, sensorprocess, batch_size=50):
         self.sensorprocess = sensorprocess
         self.batch_size = batch_size
         self.cursor = None

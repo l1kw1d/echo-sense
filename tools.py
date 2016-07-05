@@ -608,7 +608,7 @@ def safe_number(str_or_num):
 
 def safe_add_task(callable, *args, **kwargs):
     """This function guarantees addition of a task to a queue.
-            It retriesafe_add_tasks adding task if any error occurs during task creation.
+        It retries safe_add_tasks adding task if any error occurs during task creation.
 
     There are 3 ways to use this function
 
@@ -626,7 +626,7 @@ def safe_add_task(callable, *args, **kwargs):
     success = True
 
     try:
-        if isinstance(callable, basestring):#a url string
+        if isinstance(callable, basestring): # a url string
             task_dict = dict(kwargs)
             task_dict['url'] = callable
             kwargs = {
@@ -635,8 +635,8 @@ def safe_add_task(callable, *args, **kwargs):
             task_dict['eta'] = task_dict.pop("eta", None)
             callable = [task_dict]
 
-        if isinstance(callable, list):#a list of tasks
-            #create a list of taskqueue.Task Objects from the list of dicts
+        if isinstance(callable, list): # a list of tasks
+            # create a list of taskqueue.Task Objects from the list of dicts
             task_list = []
             for task_dict in callable:
                 if not task_dict.get("name"):
@@ -644,7 +644,7 @@ def safe_add_task(callable, *args, **kwargs):
                 task = taskqueue.Task(**task_dict)
                 task_list.append(task)
 
-            #if no queue_name is provided, default is used.
+            # if no queue_name is provided, default is used.
             queue_name = kwargs.get('queue_name', 'default')
             queue = taskqueue.Queue(queue_name)
             while len(task_list) > 0:
@@ -752,9 +752,11 @@ def in_same_period(ms1, ms2, period_type=4):
         return ms1_mo_begin == ms2_mo_begin
 
 def batched_runtime_with_jitter(now, interval_mins=5, name_prefix=None, max_jitter_pct=0.0):
-    runAt = now - timedelta(minutes=(now.minute % interval_mins) - interval_mins,
-                             seconds=now.second,
-                             microseconds=now.microsecond)
+    runAt = now - timedelta(
+            minutes=(now.minute % interval_mins) - interval_mins,
+            seconds=now.second,
+            microseconds=now.microsecond
+    )
     if max_jitter_pct:
         r = random.Random()
         r.seed(name_prefix)
@@ -768,8 +770,8 @@ def add_batched_task(callable, name_prefix, interval_mins=5, max_jitter_pct=0.0,
 
     Adds a task batched and scheduled for the next even (synchronized) X minutes
     Tasks with same name already scheduled for this time will not be re-added
-    Useful for processing work that should be run exactly once within a certain interval, and do not need
-    to be run immediately.
+    Useful for processing work that should be run exactly once within a certain interval,
+    and do not need to be run immediately.
 
     For example, if run at 12:43 with a 5 minute interval, schedule will be for 12:45
 
