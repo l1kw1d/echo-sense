@@ -1,13 +1,17 @@
 application: echo-sense
-version: 0-52
+version: 0-53
 runtime: python27
 api_version: 1
 threadsafe: true
-
+instance_class: B2
 default_expiration: "99d"
 
 inbound_services:
 - warmup
+
+basic_scaling:
+  max_instances: 7
+  idle_timeout: 10m
 
 handlers:
 - url: /favicon.ico
