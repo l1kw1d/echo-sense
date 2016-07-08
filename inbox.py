@@ -76,11 +76,12 @@ class DataInbox(handlers.JsonRequestHandler):
         error = 0
         if sensor_kn:
             ekey = db.Key.from_path('Enterprise', eid)
-            default_sensortype_id = Enterprise.CachedDefaultSensorType(eid)
             s = Sensor.get_by_key_name(sensor_kn, parent=ekey)
-            if not s and default_sensortype_id:
-                # Create on the fly only if we have a default sensortype
-                s = Sensor.Create(ekey, sensor_kn, default_sensortype_id)
+            if not s:
+                default_sensortype_id = Enterprise.CachedDefaultSensorType(eid)
+                if default_sensortype_id:
+                    # Create on the fly only if we have a default sensortype
+                    s = Sensor.Create(ekey, sensor_kn, default_sensortype_id)
             if s:
                 body = self.request.body
                 records = None
@@ -118,4 +119,4 @@ class DataInbox(handlers.JsonRequestHandler):
                 error = ERROR.SENSOR_NOT_FOUND
         else:
             message = "Malformed - sensor key"
-        self.json_out(data, success=success, message=message, error=error)
+        self.json_out(data, success=success, message=message, error=error, debug=True)
