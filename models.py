@@ -781,6 +781,7 @@ class Sensor(UserAccessible):
                             if 'calculation' in colschema:
                                 calc = colschema.get('calculation')
                                 if calc:
+                                    # Build expression parsers to be passed into record creation
                                     expression_parser_by_col[column] = ExpressionParser(calc, column)
                                     continue
                         # Sort with newest records last

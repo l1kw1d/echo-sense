@@ -6,3 +6,4 @@ templates/build/*
 node_modules/*
 dist/*
 docs/_build/*
+lib/*
