@@ -1,20 +1,13 @@
-import base64, re
 from constants import *
 import json
 import logging
-import urllib
-import urllib2
-import hashlib
-from google.appengine.api import mail
+from google.appengine.api import mail, db
 from google.appengine.ext import deferred
 from google.appengine.ext import webapp
 import handlers
-import authorized
 from models import *
-import tools
-import urllib
-import traceback
 from google.appengine.api import urlfetch
+
 
 class DataParser(object):
 
@@ -32,6 +25,7 @@ class DataParser(object):
             message = str(e)
         return (success, message, records)
 
+
 class JSONDataParser(DataParser):
     """Parse incoming data in JSON format (list of Record objects)"""
     def __init__(self):
@@ -42,6 +36,7 @@ class JSONDataParser(DataParser):
         # Do any data standardization? Check for timestamp format etc? Sort?
         return records
 
+
 class SMSSyncDataParser(DataParser):
     """Parse incoming message posted from SMSSync"""
     def __init__(self):
@@ -50,6 +45,7 @@ class SMSSyncDataParser(DataParser):
     def parse(self, data):
         # TODO: Implement
         return []
+
 
 class ParamsDataParser(DataParser):
     """Parse data as simple form POST"""
@@ -74,6 +70,7 @@ class DataInbox(handlers.JsonRequestHandler):
         data = {}
         eid = int(eid)
         error = 0
+        logging.debug("1 - start of request handler")
         if sensor_kn:
             ekey = db.Key.from_path('Enterprise', eid)
             s = Sensor.get_by_key_name(sensor_kn, parent=ekey)
@@ -82,6 +79,7 @@ class DataInbox(handlers.JsonRequestHandler):
                 if default_sensortype_id:
                     # Create on the fly only if we have a default sensortype
                     s = Sensor.Create(ekey, sensor_kn, default_sensortype_id)
+            logging.debug("2 - after sensor fetch")
             if s:
                 body = self.request.body
                 records = None
@@ -103,6 +101,7 @@ class DataInbox(handlers.JsonRequestHandler):
                         data['count'] = len(records)
                 else:
                     logging.error("Unsupported format: %s" % format)
+                logging.debug("3 - before saveRecords")
                 n_records = s.saveRecords(records)
                 if n_records:
                     s.dt_updated = datetime.now()
@@ -110,7 +109,9 @@ class DataInbox(handlers.JsonRequestHandler):
                     if s.target:
                         s.target.dt_updated = s.dt_updated
                         s.target.put()
+                    logging.debug("7 - after target put")
                     s.schedule_next_processing()
+                    logging.debug("8 - after schedule next processing")
                     success = True
                 else:
                     message = "No records saved"
@@ -119,4 +120,5 @@ class DataInbox(handlers.JsonRequestHandler):
                 error = ERROR.SENSOR_NOT_FOUND
         else:
             message = "Malformed - sensor key"
-        self.json_out(data, success=success, message=message, error=error, debug=True)
+        self.json_out(data, success=success, message=message,
+            error=error, debug=True)

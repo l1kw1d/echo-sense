@@ -785,6 +785,7 @@ class Sensor(UserAccessible):
                                     expression_parser_by_col[column] = ExpressionParser(calc, column)
                                     continue
                         # Sort with newest records last
+                        logging.debug("4 - before looping through records")    
                         for i, r in enumerate(sorted(records, key=lambda r : r.get('timestamp'))):
                             ts = int(r.get('timestamp'))
                             if ts:
@@ -796,7 +797,9 @@ class Sensor(UserAccessible):
                                     _r = None
                                 if _r:
                                     put_records.append(_r)
+                        logging.debug("5 - before record put")    
                         db.put(put_records)
+                        logging.debug("6 - after record put")    
                 else:
                     logging.warning("Can't save records - no type for %s" % self)
         return len(put_records)
