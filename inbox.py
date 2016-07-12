@@ -1,8 +1,8 @@
 from constants import *
 import json
 import logging
-from google.appengine.api import mail, db
-from google.appengine.ext import deferred
+from google.appengine.api import mail
+from google.appengine.ext import deferred, db
 from google.appengine.ext import webapp
 import handlers
 from models import *
