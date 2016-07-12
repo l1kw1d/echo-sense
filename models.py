@@ -785,6 +785,7 @@ class Sensor(UserAccessible):
                                     expression_parser_by_col[column] = ExpressionParser(calc, column)
                                     continue
                         # Sort with newest records last
+                        logging.debug("4 - before looping through records")
                         for i, r in enumerate(sorted(records, key=lambda r : r.get('timestamp'))):
                             ts = int(r.get('timestamp'))
                             if ts:
@@ -796,7 +797,9 @@ class Sensor(UserAccessible):
                                     _r = None
                                 if _r:
                                     put_records.append(_r)
+                        logging.debug("5 - before record put")
                         db.put(put_records)
+                        logging.debug("6 - after record put")
                 else:
                     logging.warning("Can't save records - no type for %s" % self)
         return len(put_records)
@@ -1088,7 +1091,6 @@ class Analysis(db.Expando):
                 res['columns'][prop] = self.columnValue(prop)
         return res
 
-
     def columnValue(self, column, default=None):
         return getattr(self, column, default)
 
@@ -1111,7 +1113,7 @@ class Analysis(db.Expando):
             ('%Y', datetime.strftime(now, '%Y')),
             ('%M', datetime.strftime(now, '%m')),
             ('%D', datetime.strftime(now, '%d')),
-            ('%W', datetime.strftime(now, '%W')) # Python style week number (0-53)
+            ('%W', datetime.strftime(now, '%W'))  # Python style week number (0-53)
         ]
         for rep in REPL:
             analysis_key_pattern = analysis_key_pattern.replace(rep[0], rep[1])
@@ -1127,7 +1129,9 @@ class Analysis(db.Expando):
         Pass one of analysis_key_pattern or kn
         '''
         kn = Analysis._key_name(analysis_key_pattern, sensor=sensor)
-        a = Analysis.get_or_insert(kn, parent=sensor.enterprise, enterprise=sensor.enterprise, sensor=sensor, sensortype=sensor.sensortype)
+        a = Analysis.get_or_insert(kn, parent=sensor.enterprise,
+            enterprise=sensor.enterprise, sensor=sensor,
+            sensortype=sensor.sensortype)
         return a
 
     @staticmethod
@@ -1144,6 +1148,7 @@ class Analysis(db.Expando):
 
     def Update(self, **params):
         pass
+
 
 class ProcessTask(UserAccessible):
     """
@@ -1175,7 +1180,7 @@ class ProcessTask(UserAccessible):
     time_end = db.TimeProperty(indexed=False)  # UTC
     # Scheduling - OR of the below
     month_days = db.ListProperty(int, indexed=False)  # 1 - 31
-    week_days = db.ListProperty(int, default=[1,2,3,4,5,6,7], indexed=False)  # 1 - 7 (Mon - Sun)
+    week_days = db.ListProperty(int, default=[1, 2, 3, 4, 5, 6, 7], indexed=False)  # 1 - 7 (Mon - Sun)
     rule_ids = db.ListProperty(int, indexed=False)
     label = db.StringProperty(indexed=False)
     # JSON spec for ExpressionParser (cleaning, calculations, and production of analysis records). TODO: Validate
@@ -1211,7 +1216,8 @@ class ProcessTask(UserAccessible):
         return self.sensorprocesstask_set.fetch(limit=limit)
 
     def get_rules(self):
-        return [rule for rule in Rule.get_by_id(self.rule_ids, parent=self.enterprise) if rule]
+        return [rule for rule in Rule.get_by_id(self.rule_ids,
+            parent=self.enterprise) if rule]
 
     def can_run_now(self):
         today_ok = self.runs_today()
@@ -1226,7 +1232,7 @@ class ProcessTask(UserAccessible):
         now = datetime.now()
         if day_offset:
             now = now + timedelta(days=day_offset)
-        day_of_week = now.weekday() + 1 # 1-7 M-Su
+        day_of_week = now.weekday() + 1  # 1-7 M-Su
         day_of_month = now.day
         return day_of_week in self.week_days or day_of_month in self.month_days
 
@@ -1708,7 +1714,6 @@ class Alarm(db.Model):
             q.filter("rule =", rule)
         return q.fetch(limit=limit, offset=offset)
 
-
     def deactivate(self):
         self.is_active = False
 
@@ -1976,7 +1981,7 @@ class APILog(UserAccessible):
     host = db.TextProperty()
     path = db.TextProperty()
     status = db.IntegerProperty(indexed=False)
-    request = db.TextProperty() # With authentication params stripped
+    request = db.TextProperty()  # With authentication params stripped
     method = db.TextProperty()
     date = db.DateTimeProperty(auto_now_add=True)
     # Response

@@ -1,6 +1,4 @@
-import os, logging
-from datetime import datetime,timedelta
-import webapp2
+from datetime import datetime, timedelta
 from google.appengine.ext import db, blobstore, deferred
 from google.appengine.ext.webapp import blobstore_handlers
 from google.appengine.api import images, taskqueue, users, mail, search
@@ -15,6 +13,7 @@ import authorized
 import json
 
 import handlers
+
 
 class PublicAPI(handlers.JsonRequestHandler):
 
@@ -97,7 +96,8 @@ class EnterpriseAPI(handlers.JsonRequestHandler):
         message = None
         ent = None
         key = self.request.get('key')
-        params = tools.gets(self, strings=['name','country','timezone','alias'], integers=['default_sensortype'], json=['gateway_config'], ignoreMissing=True)
+        params = tools.gets(self, strings=['name','country','timezone','alias'],
+            integers=['default_sensortype'], json=['gateway_config'], ignoreMissing=True)
         if key:
             ent = Enterprise.get(key)
         elif params.get('name'):
@@ -117,7 +117,6 @@ class EnterpriseAPI(handlers.JsonRequestHandler):
     def delete(self, d):
         success = False
         message = None
-        pm = None
         key = self.request.get('key')
         if key:
             ent = Enterprise.get(key)
@@ -142,6 +141,7 @@ class EnterpriseAPI(handlers.JsonRequestHandler):
             'enterprise': e.json() if e else None
         }
         self.json_out(data=data, message=message, success=success)
+
 
 class UserAPI(handlers.JsonRequestHandler):
     """
@@ -174,7 +174,9 @@ class UserAPI(handlers.JsonRequestHandler):
         success = False
         message = None
         id = self.request.get_range('id')
-        params = tools.gets(self, strings=['name','password','phone','email','location_text','currency'], integers=['level', 'alert_channel'], lists=['group_ids'], json=['custom_attrs'], ignoreMissing=True)
+        params = tools.gets(self, strings=['name', 'password', 'phone', 'email', 'location_text', 'currency'],
+            integers=['level', 'alert_channel'], lists=['group_ids'],
+            json=['custom_attrs'], ignoreMissing=True)
         user = None
         isSelf = False
         if id:
@@ -256,7 +258,7 @@ class SensorMediaAPI(handlers.JsonRequestHandler):
                     pm.Update(**params)
                     pm.put()
                     p.Update()
-                    p.put() # Change update timestamp
+                    p.put()  # Change update timestamp
                     success = True
         else:
             message = "Malformed"
@@ -326,10 +328,10 @@ class SensorAPI(handlers.JsonRequestHandler):
         success = False
         message = None
 
-        key_names = self.request.get('key_names') # comma sep
+        key_names = self.request.get('key_names')  # comma sep
         page, _max, offset = tools.paging_params(self.request, limit_default=100)
         with_records = self.request.get_range('with_records', default=0)
-        ms_updated_since = self.request.get_range('updated_since', default=0) # ms
+        ms_updated_since = self.request.get_range('updated_since', default=0)  # ms
         target_id = self.request.get_range('target_id')
         order_by = self.request.get('order_by')
         group_id = self.request.get_range('group_id')
@@ -467,6 +469,7 @@ class SensorAPI(handlers.JsonRequestHandler):
         else:
             message = "Sensor not found"
         self.json_out({}, message=message, success=success)
+
 
 class SensorTypeAPI(handlers.JsonRequestHandler):
     @authorized.role('api')
@@ -633,7 +636,7 @@ class TargetAPI(handlers.JsonRequestHandler):
         message = None
 
         _max = self.request.get_range('max', max_value=500, default=100)
-        ms_updated_since = self.request.get_range('updated_since', default=0) # ms
+        ms_updated_since = self.request.get_range('updated_since', default=0)  # ms
         group_id = self.request.get_range("group_id")
 
         updated_since = tools.dt_from_ts(ms_updated_since) if ms_updated_since else None

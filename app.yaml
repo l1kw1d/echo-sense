@@ -1,5 +1,5 @@
 application: echo-sense
-version: 0-53-1
+version: 0-54
 runtime: python27
 api_version: 1
 threadsafe: true
@@ -10,7 +10,7 @@ inbound_services:
 - warmup
 
 basic_scaling:
-  max_instances: 7
+  max_instances: 10
   idle_timeout: 10m
 
 handlers:

@@ -2,24 +2,15 @@ import tools
 from constants import *
 from models import *
 from datetime import datetime
-import gc
 import logging
-import random
 from expressionParser import ExpressionParser
-from google.appengine.api import logservice
-from google.appengine.api import memcache
-from google.appengine.api import search
-from google.appengine.api import taskqueue
-from google.appengine.ext import blobstore
 from google.appengine.ext import db
-from google.appengine.ext import deferred
 from google.appengine.runtime import DeadlineExceededError
-import traceback
-from decorators import deferred_task_decorator
 
-MAX_REQUEST_SECONDS = 40 # TODO: Should this be 5 mins?
+MAX_REQUEST_SECONDS = 40  # TODO: Should this be 5 mins?
 
 USE_DEFERRED = True
+
 
 class TooLongError(Exception):
     def __init__(self):
@@ -28,6 +19,7 @@ class TooLongError(Exception):
 # TODO
 # Rearchitect to query in window (last run to now (when worker starts))
 # Otherwise we may miss records coming in during processing
+
 
 class SensorProcessWorker(object):
 
@@ -49,7 +41,6 @@ class SensorProcessWorker(object):
 
     def __str__(self):
         return "<SensorProcessWorker sensor_kn=%s from=%s to=%s />" % (self.sensor.key().name(), self._query_from(), self._query_until())
-
 
     def setup(self):
         self.rules = self.process.get_rules()  # Rules active for this process
@@ -107,7 +98,6 @@ class SensorProcessWorker(object):
             if alarms:
                 return alarms[0]
         return None
-
 
     def last_activation_ts(self, rule_index):
         alarms = self.recent_alarms[rule_index]
@@ -265,10 +255,10 @@ class SensorProcessWorker(object):
             col = processer.get('column')
             expr = processer.get('expr', processer.get('calculation', None))
             if expr and col:
+                # TODO: Slow?
                 ep = ExpressionParser(expr, col, analysis=a, run_ms=run_ms)
                 res = ep.run(record_list=records, alarm_list=self.new_alarms)
                 a.setColumnValue(col, res)
-
 
     def processRecord(self, record):
         # Listen for alarms
@@ -294,7 +284,7 @@ class SensorProcessWorker(object):
         return alarm
 
     def checkDeadline(self):
-        TIMEOUT_SECS = 4*60 # 4 mins
+        TIMEOUT_SECS = 4*60  # 4 mins
         elapsed = tools.total_seconds(datetime.now() - self.start)
         logging.debug("%d / %d seconds elapsed..." % (elapsed, TIMEOUT_SECS))
         if elapsed >= TIMEOUT_SECS:
@@ -312,8 +302,9 @@ class SensorProcessWorker(object):
         self.sensorprocess.status_last_run = result
         self.sensorprocess.narrative_last_run = narrative
         self.sensorprocess.put()
-        logging.debug("Finished for %s. Last record: %s. Status: %s" % (self.sensorprocess, self.sensorprocess.dt_last_run, self.sensorprocess.print_status()))
-
+        logging.debug("Finished for %s. Last record: %s. Status: %s" % (
+            self.sensorprocess, self.sensorprocess.dt_last_run,
+            self.sensorprocess.print_status()))
 
     def run(self):
         self.start = datetime.now()
@@ -334,4 +325,3 @@ class SensorProcessWorker(object):
         except Exception, e:
             logging.exception("Uncaught error: %s" % e)
             self.finish(result=PROCESS.ERROR, narrative="Processing Error: %s" % e)
-
