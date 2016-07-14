@@ -31,7 +31,7 @@ To deploy a new instance of Echo Sense, use the following instructions.
 
 ### Setup Obtain Google App Engine SDK
 
-Download the APK from Google.
+Download the SDK from Google.
 <https://cloud.google.com/appengine/downloads>
 
 ### Create a branch or fork the repo
