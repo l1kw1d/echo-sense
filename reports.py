@@ -281,7 +281,7 @@ class SensorDataReportWorker(GCSReportWorker):
     KIND = Record
 
     def __init__(self, sensorkey, rkey):
-        super(SensorDataReportWorker, self).__init__(rkey, start_att="dt_recorded", start_att_direction="-")
+        super(SensorDataReportWorker, self).__init__(rkey, start_att="dt_recorded", start_att_direction="")
         title_kwargs = {}
         specs = self.report.getSpecs()
         if sensorkey:
@@ -309,7 +309,7 @@ class SensorDataReportWorker(GCSReportWorker):
 
     def entityData(self, rec):
         row = [
-            "ID:%s" % tools.getKey(Record, 'sensor', rec, asID=True),
+            "ID:%s" % tools.getKey(Record, 'sensor', rec, asID=False, asKeyName=True),
             tools.sdatetime(rec.dt_recorded, fmt="%Y-%m-%d %H:%M:%S %Z")
         ]
         for col in self.columns:
@@ -320,7 +320,7 @@ class AlarmReportWorker(GCSReportWorker):
     KIND = Alarm
 
     def __init__(self, entkey, rkey):
-        super(AlarmReportWorker, self).__init__(rkey, start_att="dt_start", start_att_direction="-")
+        super(AlarmReportWorker, self).__init__(rkey, start_att="dt_start", start_att_direction="")
         self.enterprise = self.report.enterprise
         self.FILTERS = [("enterprise =", self.enterprise)]
         specs = self.report.getSpecs()
@@ -336,7 +336,7 @@ class AlarmReportWorker(GCSReportWorker):
         self.headers = ["Sensor ID","Sensor","Rule","Apex","Start","End"]
 
     def entityData(self, alarm):
-        sensor_id = tools.getKey(Alarm, 'sensor', alarm, asID=False)
+        sensor_id = tools.getKey(Alarm, 'sensor', alarm, asID=False, asKeyName=True)
         sensor_name = self.sensor_lookup.get(sensor_id, "")
         rule_name = str(self.rule_lookup.get(tools.getKey(Alarm, 'rule', alarm, asID=False), ""))
         apex = "%.2f" % alarm.apex if alarm.apex is not None else "--"
@@ -347,7 +347,7 @@ class APILogReportWorker(GCSReportWorker):
     KIND = APILog
 
     def __init__(self, rkey):
-        super(APILogReportWorker, self).__init__(rkey, start_att="date", start_att_direction="-")
+        super(APILogReportWorker, self).__init__(rkey, start_att="date", start_att_direction="")
         self.enterprise = self.report.enterprise
         self.FILTERS = [("enterprise =", self.enterprise)]
         specs = self.report.getSpecs()
@@ -370,7 +370,7 @@ class AnalysisReportWorker(GCSReportWorker):
     KIND = Analysis
 
     def __init__(self, entkey, rkey):
-        super(AnalysisReportWorker, self).__init__(rkey, start_att="dt_created", start_att_direction="-")
+        super(AnalysisReportWorker, self).__init__(rkey, start_att="dt_created", start_att_direction="")
         self.enterprise = self.report.enterprise
         self.FILTERS = [("enterprise =", self.enterprise)]
         specs = self.report.getSpecs()
