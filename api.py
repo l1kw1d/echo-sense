@@ -692,7 +692,7 @@ class TargetAPI(handlers.JsonRequestHandler):
     @authorized.role('api')
     def delete(self, d):
         success = False
-        message = None
+        message = id = None
         key = self.request.get('key')
         target = Target.get(key)
         if target:
@@ -700,7 +700,7 @@ class TargetAPI(handlers.JsonRequestHandler):
             if success:
                 id = target.key().id()
         else:
-            message = "Target type not found"
+            message = "Target not found"
         self.json_out({"key": key, "id": id}, message=message, success=success)
 
 
