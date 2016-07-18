@@ -225,7 +225,7 @@ def lookupDict(model, itemlist, keyprop="key_string", valueTransform=None):
     if valueProp is None, value at each key is full item from list
     otherwise, run specified function to get value to store in dict
     """
-    if keyprop not in ['key_string', 'key_id']:
+    if keyprop not in ['key_string', 'key_id', 'key_name']:
         prop = model.properties().get(keyprop)
     else:
         prop = None
@@ -238,6 +238,8 @@ def lookupDict(model, itemlist, keyprop="key_string", valueTransform=None):
             keyval = str(item.key())
         elif keyprop == 'key_id':
             keyval = item.key().id()
+        elif keyprop == 'key_name':
+            keyval = item.key().name()
         elif prop:
             keyval = prop.get_value_for_datastore(item)
         if keyval:

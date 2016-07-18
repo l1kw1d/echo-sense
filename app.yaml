@@ -1,9 +1,9 @@
 application: echo-sense
-version: test
+version: 0-55
 runtime: python27
 api_version: 1
 threadsafe: true
-instance_class: B2
+instance_class: B1
 default_expiration: "99d"
 
 inbound_services:

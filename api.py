@@ -1050,7 +1050,10 @@ class ReportAPI(handlers.JsonRequestHandler):
 
     @authorized.role('api')
     def generate(self, d):
-        type = self.request.get_range('type', default=REPORT.SENSOR_DATA_REPORT)
+        from handlers import APIError
+        type = self.request.get_range('type')
+        if not type:
+            raise APIError("No type in report request")
         ftype = self.request.get_range('ftype', default=REPORT.CSV)
         target = self.request.get('target')
         specs_json = self.request.get('specs_json')

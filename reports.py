@@ -303,12 +303,13 @@ class SensorDataReportWorker(GCSReportWorker):
             self.FILTERS.append(("dt_recorded <", tools.dt_from_ts(end)))
         self.report.generate_title("Sensor Data Report", ts_start=start, ts_end=end, **title_kwargs)
         self.columns = specs.get('columns', [])
-        standard_cols = ["Sensor ID", "Date"]
+        standard_cols = ["Record ID", "Sensor ID", "Date"]
         self.headers = standard_cols + self.columns
         self.batch_size = 1000
 
     def entityData(self, rec):
         row = [
+            "ID:%s" % rec.key().name(),
             "ID:%s" % tools.getKey(Record, 'sensor', rec, asID=False, asKeyName=True),
             tools.sdatetime(rec.dt_recorded, fmt="%Y-%m-%d %H:%M:%S %Z")
         ]
@@ -331,16 +332,18 @@ class AlarmReportWorker(GCSReportWorker):
         if end:
             self.FILTERS.append(("dt_start <", tools.dt_from_ts(end)))
         self.report.generate_title("Alarm Report", ts_start=start, ts_end=end)
-        self.sensor_lookup = tools.lookupDict(Sensor, self.enterprise.sensor_set.fetch(limit=200), valueTransform=lambda s : s.name)
+        self.sensor_lookup = tools.lookupDict(Sensor, self.enterprise.sensor_set.fetch(limit=200), valueTransform=lambda s : s.name, keyprop="key_name")
         self.rule_lookup = tools.lookupDict(Rule, self.enterprise.rule_set.fetch(limit=100))
-        self.headers = ["Sensor ID","Sensor","Rule","Apex","Start","End"]
+        self.headers = ["Alarm ID", "Sensor ID", "Sensor", "Rule ID", "Rule", "Apex", "Start", "End"]
 
     def entityData(self, alarm):
+        alarm_id = alarm.key().id()
         sensor_id = tools.getKey(Alarm, 'sensor', alarm, asID=False, asKeyName=True)
         sensor_name = self.sensor_lookup.get(sensor_id, "")
+        rule_id = tools.getKey(Alarm, 'rule', alarm, asID=True)
         rule_name = str(self.rule_lookup.get(tools.getKey(Alarm, 'rule', alarm, asID=False), ""))
         apex = "%.2f" % alarm.apex if alarm.apex is not None else "--"
-        row = ["ID:%s" % sensor_id, sensor_name, rule_name, apex, tools.sdatetime(alarm.dt_start), tools.sdatetime(alarm.dt_end)]
+        row = ["ID:%s" % alarm_id, "ID:%s" % sensor_id, sensor_name, "ID:%s" % rule_id, rule_name, apex, tools.sdatetime(alarm.dt_start), tools.sdatetime(alarm.dt_end)]
         return row
 
 class APILogReportWorker(GCSReportWorker):
@@ -358,11 +361,12 @@ class APILogReportWorker(GCSReportWorker):
         if end:
             self.FILTERS.append(("date <", tools.dt_from_ts(end)))
         self.report.generate_title("API Log Report", ts_start=start, ts_end=end)
-        self.headers = ["User ID","Date","Path","Method","Request"]
+        self.headers = ["Request ID", "User ID", "Date", "Path", "Method", "Request"]
 
     def entityData(self, apilog):
+        request_id = "ID:" + str(apilog.key().id())
         uid = "ID:%s" % tools.getKey(APILog, 'user', apilog, asID=True)
-        row = [uid, tools.sdatetime(apilog.date), apilog.path, apilog.method, apilog.request]
+        row = [request_id, uid, tools.sdatetime(apilog.date), apilog.path, apilog.method, apilog.request]
         return row
 
 
@@ -376,7 +380,9 @@ class AnalysisReportWorker(GCSReportWorker):
         specs = self.report.getSpecs()
         start = specs.get("start", 0)
         end = specs.get("end", 0)
-        self.columns = specs.get("columns", "").split(",")
+        self.columns = specs.get('columns', [])
+        if isinstance(self.columns, basestring):
+            self.columns = self.columns.split(',')
         sensortype_id = specs.get("sensortype_id")
         self.report.generate_title("Analysis Report", ts_start=start, ts_end=end, sensortype_id=sensortype_id)
         if start:
