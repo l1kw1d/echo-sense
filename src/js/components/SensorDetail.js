@@ -266,10 +266,12 @@ export default class SensorDetail extends React.Component {
         var detail = "Last run: " + util.printDate(p.ts_last_run);
         if (p.narrative_last_run) detail += " Narrative: " + p.narrative_last_run;
         var status_icon = <i className={AppConstants.PROCESS_STATUS_ICONS[p.status_last_run]}/>
+        var running_icon;
+        if (p.running) running_icon = <i className="fa fa-refresh fa-spin" style={{color: 'green'}} />
         return (
         <li className="list-group-item" key={"p"+i}>
           <Link to={`/app/sensors/${s.kn}/processtask/${p.kn}`} className="title" title={detail}>{ p.process_task_label }</Link>
-          <span className="sub">{ status_icon } { AppConstants.PROCESS_STATUS_LABELS[p.status_last_run] }</span>
+          <span className="sub">{ status_icon } { running_icon } { AppConstants.PROCESS_STATUS_LABELS[p.status_last_run] }</span>
           <a href="javascript:void(0)" className="right" hidden={!can_write} onClick={this.runProcesser.bind(this, p)}><i className="fa fa-play"/></a>
           <a href="javascript:void(0)" className="right red" hidden={!can_write} onClick={this.deleteProcesser.bind(this, p)} style={{marginRight: "5px"}}><i className="fa fa-trash"/></a>
         </li>

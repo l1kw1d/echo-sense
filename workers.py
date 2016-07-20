@@ -27,7 +27,8 @@ class SensorProcessWorker(object):
         self.sensorprocess = sensorprocess
         self.batch_size = batch_size
         self.cursor = None
-        self.start = datetime.now()
+        self.worker_start = datetime.now()
+        self.start = self.worker_start
         self.sensor = sensorprocess.sensor
         self.ent = sensorprocess.enterprise
         self.process = sensorprocess.process
@@ -66,7 +67,7 @@ class SensorProcessWorker(object):
         return self.dt_last_record
 
     def _query_until(self):
-        return self.start
+        return self.worker_start
 
     def _get_query(self):
         # Since time of last processed record
@@ -92,6 +93,7 @@ class SensorProcessWorker(object):
         return a
 
     def _recent_active_alarm(self, rule_index):
+        logging.debug('_recent_active_alarm')
         alarms = self.recent_alarms[rule_index]
         if alarms:
             alarms = filter(lambda al : al.active(), alarms)
@@ -127,6 +129,7 @@ class SensorProcessWorker(object):
         Returns:
             list: list of lists (Recent Alarm() objects at each rule index, ordered desc. by dt_start)
         '''
+        logging.debug('fetch_recent_alarms')
         recent_alarms = []
         for r in self.rules:
             limit = r.plimit if r.period_limit_enabled() else 1
@@ -134,6 +137,7 @@ class SensorProcessWorker(object):
         return recent_alarms
 
     def fetchBatch(self):
+        logging.debug('fetchBatch')
         if self.cursor:
             self.query.with_cursor(self.cursor)
         batch = self.query.fetch(self.batch_size)
@@ -153,18 +157,21 @@ class SensorProcessWorker(object):
 
         '''
         # Standard processing (alarms)
+        logging.debug('runBatch 1')
         self.new_alarms = []
         for record in records:
             new_alarm = self.processRecord(record)
             if new_alarm:
                 self.new_alarms.append(new_alarm)
 
+        logging.debug('runBatch 2')
         # Analysis processing
         if self.processers:
             for processer in self.processers:
                 run_ms = tools.unixtime(records[-1].dt_recorded) if records else 0
                 self._run_processer(processer, records=records, run_ms=run_ms)
 
+        logging.debug('runBatch 3')
         db.put(self.analyses.values())
 
         logging.debug("Ran batch of %d." % (len(records)))
@@ -247,6 +254,7 @@ class SensorProcessWorker(object):
         return (activate, deactivate, val)
 
     def _run_processer(self, processer, records=None, run_ms=0):
+        logging.debug("_run_processer - %s" % processer)
         if records is None:
             records = []
         key_pattern = processer.get('analysis_key_pattern')
@@ -298,7 +306,7 @@ class SensorProcessWorker(object):
         if self.updated_alarm_dict:
             alarms = self.updated_alarm_dict.values()
             db.put(alarms)
-        self.sensorprocess.dt_last_run = datetime.now()
+        self.sensorprocess.dt_last_run = datetime.now()  # Finish time
         self.sensorprocess.status_last_run = result
         self.sensorprocess.narrative_last_run = narrative
         self.sensorprocess.put()
@@ -308,8 +316,10 @@ class SensorProcessWorker(object):
 
     def run(self):
         self.start = datetime.now()
+        self.sensorprocess.dt_last_run_start = self.start
+        self.sensorprocess.put()
         self.setup()
-        logging.debug("Running %s" % self)
+        logging.debug("Starting run %s" % self)
         try:
             while True:
                 batch = self.fetchBatch()
@@ -321,7 +331,7 @@ class SensorProcessWorker(object):
                     break
         except (TooLongError, DeadlineExceededError):
             logging.debug("Deadline expired, creating new request...")
-            tools.safe_add_task(self.run, _queue="worker-queue")
+            tools.safe_add_task(self.run, _queue="processing-queue")
         except Exception, e:
             logging.exception("Uncaught error: %s" % e)
             self.finish(result=PROCESS.ERROR, narrative="Processing Error: %s" % e)

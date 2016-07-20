@@ -1022,9 +1022,12 @@ class ProcessTaskAPI(handlers.JsonRequestHandler):
         sptkey = self.request.get('sptkey')  # Key of SensorProcessTask()
         spt = SensorProcessTask.get(sptkey)
         if spt:
-            spt.run()
-            success = True
-        self.json_out({}, success=success)
+            success = spt.run()
+            if not success:
+                message = "Can't run this task -- already running or no records to process?"
+        else:
+            message = "Task not found"
+        self.json_out({}, success=success, message=message)
 
 def backgroundReportRun(rkey, target=None, start_cursor=None):
     r = Report.get(rkey)
@@ -1060,7 +1063,7 @@ class ReportAPI(handlers.JsonRequestHandler):
         specs = tools.getJson(specs_json)
         report = Report.Create(d['enterprise'], type=type, specs=specs, ftype=ftype)
         report.put()
-        tools.safe_add_task(backgroundReportRun, str(report.key()), target=target, _queue="worker-queue")
+        tools.safe_add_task(backgroundReportRun, str(report.key()), target=target, _queue="report-queue")
         self.json_out(success=True, message="%s generating..." % report.title, data={
             'report': report.json() if report else None
             })

@@ -70,7 +70,6 @@ class DataInbox(handlers.JsonRequestHandler):
         data = {}
         eid = int(eid)
         error = 0
-        logging.debug("1 - start of request handler")
         if sensor_kn:
             ekey = db.Key.from_path('Enterprise', eid)
             s = Sensor.get_by_key_name(sensor_kn, parent=ekey)
@@ -79,7 +78,6 @@ class DataInbox(handlers.JsonRequestHandler):
                 if default_sensortype_id:
                     # Create on the fly only if we have a default sensortype
                     s = Sensor.Create(ekey, sensor_kn, default_sensortype_id)
-            logging.debug("2 - after sensor fetch")
             if s:
                 body = self.request.body
                 records = None
@@ -101,7 +99,6 @@ class DataInbox(handlers.JsonRequestHandler):
                         data['count'] = len(records)
                 else:
                     logging.error("Unsupported format: %s" % format)
-                logging.debug("3 - before saveRecords")
                 n_records = s.saveRecords(records)
                 if n_records:
                     s.dt_updated = datetime.now()
@@ -109,9 +106,7 @@ class DataInbox(handlers.JsonRequestHandler):
                     if s.target:
                         s.target.dt_updated = s.dt_updated
                         s.target.put()
-                    logging.debug("7 - after target put")
                     s.schedule_next_processing()
-                    logging.debug("8 - after schedule next processing")
                     success = True
                 else:
                     message = "No records saved"

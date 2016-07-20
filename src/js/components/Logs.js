@@ -32,10 +32,14 @@ export default class Logs extends React.Component {
   }
 
   renderProcesser(p) {
+    var _running;
+    if (p.running) _running = <i className="fa fa-refresh fa-spin" style={{color: 'green'}} />
     return (
-      <li className="list-group-item" key={p.id}>
+      <li className="list-group-item" key={p.key}>
         <span className="title">{ p.label }</span>
-        <span className="sub">Last Run: <span data-ts={p.ts_last_run}></span></span>
+        { _running }
+        <span className="sub">Last Start: <span data-ts={p.ts_last_run_start}></span></span>
+        <span className="sub">Last Finish: <span data-ts={p.ts_last_run}></span></span>
       </li>
       );
   }

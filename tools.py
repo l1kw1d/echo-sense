@@ -112,9 +112,12 @@ def clone_entity(e, **extra_args):
 def str_to_tuple(s):
     return tuple(float(x) for x in s[1:-1].split(','))
 
-def unixtime(dt=None, ms=True):
+def unixtime(dt=None, ms=True, none_now=True):
     if not dt:
-        dt = datetime.now()
+        if none_now:
+            dt = datetime.now()
+        else:
+            return None
     unix = time.mktime(dt.timetuple())*1e3 + dt.microsecond/1e3
     if ms:
         return int(unix)

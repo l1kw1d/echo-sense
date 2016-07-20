@@ -785,7 +785,6 @@ class Sensor(UserAccessible):
                                     expression_parser_by_col[column] = ExpressionParser(calc, column)
                                     continue
                         # Sort with newest records last
-                        logging.debug("4 - before looping through records")
                         for i, r in enumerate(sorted(records, key=lambda r : r.get('timestamp'))):
                             ts = int(r.get('timestamp'))
                             if ts:
@@ -797,9 +796,7 @@ class Sensor(UserAccessible):
                                     _r = None
                                 if _r:
                                     put_records.append(_r)
-                        logging.debug("5 - before record put")
                         db.put(put_records)
-                        logging.debug("6 - after record put")
                 else:
                     logging.warning("Can't save records - no type for %s" % self)
         return len(put_records)
@@ -1285,7 +1282,8 @@ class SensorProcessTask(db.Model):
     process = db.ReferenceProperty(ProcessTask)
     sensor = db.ReferenceProperty(Sensor)
     dt_created = db.DateTimeProperty(auto_now_add=True)
-    dt_last_run = db.DateTimeProperty(default=None)
+    dt_last_run_start = db.DateTimeProperty(indexed=False, default=None)
+    dt_last_run = db.DateTimeProperty(default=None) # Finish
     dt_last_record = db.DateTimeProperty(default=None)
     status_last_run = db.IntegerProperty(default=PROCESS.NEVER_RUN)
     narrative_last_run = db.TextProperty()
@@ -1302,14 +1300,22 @@ class SensorProcessTask(db.Model):
             'kn': self.key().name(),
             'label': str(self),
             'process_task_label': self.process.label, # Inefficient
-            'ts_last_run': tools.unixtime(self.dt_last_run),
-            'ts_last_record': tools.unixtime(self.dt_last_record),
+            'ts_last_run': tools.unixtime(self.dt_last_run, none_now=False),
+            'ts_last_run_start': tools.unixtime(self.dt_last_run_start, none_now=False),
+            'ts_last_record': tools.unixtime(self.dt_last_record, none_now=False),
+            'running': self.running(),
             'status_last_run': self.status_last_run,
             'narrative_last_run': self.narrative_last_run
         }
 
     def print_status(self):
         return PROCESS.STATUS_LABELS.get(self.status_last_run)
+
+    def running(self):
+        if not self.dt_last_run_start:
+            return False
+        return not self.dt_last_run or \
+            (self.dt_last_run_start > self.dt_last_run)
 
     @staticmethod
     def _key_name(process, sensor):
@@ -1339,20 +1345,30 @@ class SensorProcessTask(db.Model):
             return []
 
     def should_run(self):
-        if self.dt_last_run:
-            if self.sensor.dt_updated:
-                return self.dt_last_run < self.sensor.dt_updated
+        if not self.running():
+            if self.dt_last_run:
+                if self.sensor.dt_updated:
+                    return self.dt_last_run < self.sensor.dt_updated
+                else:
+                    return False
             else:
-                return False
+                return True
         else:
-            return True
+            return False
 
     def schedule_run(self):
         from tasks import bgRunSensorProcess
         process = self.process
         if process.can_run_now():
-            mins = max([int(process.interval / 60.), 1])
-            tools.add_batched_task(bgRunSensorProcess, str(self.key()), interval_mins=mins, max_jitter_pct=0.2, sptkey=str(self.key()))
+            if self.running():
+                logging.info("Not scheduling future run, currently running")
+            else:
+                mins = max([int(process.interval / 60.), 1])
+                tools.add_batched_task(bgRunSensorProcess, str(self.key()),
+                    interval_mins=mins,
+                    max_jitter_pct=0.2,
+                    sptkey=str(self.key()),
+                    _queue="processing-queue")
         else:
             logging.info("%s can't run now" % self)
 
@@ -1361,7 +1377,7 @@ class SensorProcessTask(db.Model):
         if self.should_run():
             logging.info("Running %s" % self)
             from tasks import bgRunSensorProcess
-            tools.safe_add_task(bgRunSensorProcess, sptkey=str(self.key()))
+            tools.safe_add_task(bgRunSensorProcess, sptkey=str(self.key()), _queue="processing-queue")
             return True
         else:
             logging.debug("No need to run %s" % self)

@@ -2,7 +2,7 @@ queue:
 - name: default
   rate: 1/s
 - name: processing-queue
-  rate: 2/s
+  rate: 1/s
 - name: sms-out-queue
   rate: 3/s
   bucket_size: 10
@@ -16,8 +16,8 @@ queue:
     max_doublings: 8
     task_age_limit: 1d
 
-- name: worker-queue
-  rate: 2/s
+# - name: worker-queue
+#   rate: 1/s
 
 - name: report-queue
   rate: 2/s
