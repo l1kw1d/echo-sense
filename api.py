@@ -881,7 +881,7 @@ class SensorProcessTaskAPI(handlers.JsonRequestHandler):
 
         _max = self.request.get_range('max', max_value=500, default=20)
 
-        spts = SensorProcessTask.Fetch(enterprise=d['enterprise'], limit=_max)
+        spts = SensorProcessTask.Fetch(enterprise=d['enterprise'], limit=_max, refresh=True)
         success = True
 
         data = {

@@ -39,6 +39,9 @@ class SensorProcessWorker(object):
         self.ep = None
         self.analyses = {}
         self.last_record = None
+        self.sensorprocess.dt_last_run_start = self.start
+        self.sensorprocess.put()
+
 
     def __str__(self):
         return "<SensorProcessWorker sensor_kn=%s from=%s to=%s />" % (self.sensor.key().name(), self._query_from(), self._query_until())
@@ -310,14 +313,14 @@ class SensorProcessWorker(object):
         self.sensorprocess.status_last_run = result
         self.sensorprocess.narrative_last_run = narrative
         self.sensorprocess.put()
-        logging.debug("Finished for %s. Last record: %s. Status: %s" % (
-            self.sensorprocess, self.sensorprocess.dt_last_run,
+        logging.debug("Finished %s in %s seconds. Last record: %s. Status: %s" % (
+            self.sensorprocess,
+            self.sensorprocess.last_run_duration(),
+            self.sensorprocess.dt_last_run,
             self.sensorprocess.print_status()))
 
     def run(self):
         self.start = datetime.now()
-        self.sensorprocess.dt_last_run_start = self.start
-        self.sensorprocess.put()
         self.setup()
         logging.debug("Starting run %s" % self)
         try:

@@ -1317,6 +1317,14 @@ class SensorProcessTask(db.Model):
         return not self.dt_last_run or \
             (self.dt_last_run_start > self.dt_last_run)
 
+    def last_run_duration(self):
+        if not self.running() and self.dt_last_run and self.dt_last_run_start:
+            duration = self.dt_last_run - self.dt_last_run_start
+            secs = tools.total_seconds(duration)
+            return secs
+        return None
+
+
     @staticmethod
     def _key_name(process, sensor):
         return "%s_%s" % (process.key().id(), sensor.key().name())
