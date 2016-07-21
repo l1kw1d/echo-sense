@@ -127,6 +127,7 @@ app = webapp2.WSGIApplication(
       # Misc
       webapp2.Route('/res/<bk>', handler=views.ServeBlob, name="ServeBlob"),
       webapp2.Route('/_ah/warmup', handler=actions.WarmupHandler),
+      webapp2.Route('/_ah/start', handler=actions.StartInstance),
 
       # GCM
       webapp2.Route('/gcm/connect', gcmActions.GCMConnection),

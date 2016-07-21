@@ -11,6 +11,8 @@ import tools
 from constants import *
 import json
 
+IGNORE_EXCEPTIONS = ["Shutdown"]
+
 class APIError(Exception):
     def __init__(self, message, errors=None):
         super(APIError, self).__init__(message)
@@ -72,28 +74,29 @@ class BaseRequestHandler(webapp2.RequestHandler):
         exception_name = sys.exc_info()[0].__name__
         exception_details = str(sys.exc_info()[1])
         exception_traceback = ''.join(traceback.format_exception(*sys.exc_info()))
-        logging.error(exception_traceback)
-        send_email = not (suppressed_exceptions and exception_name in suppressed_exceptions)
-        if send_email:
-            exception_expiration = 3600 # seconds (max 1 mail per hour for a particular exception)
-            mail_admin = SENDER_EMAIL # must be admin for the application
-            sitename = SITENAME
-            ver = os.environ['CURRENT_VERSION_ID']
-            dev = any(keyword in ver for keyword in TEST_VERSIONS) or tools.on_dev_server()
-            sitename += ":DEV" if dev else ":PROD"
-            session = self.session
-            ename = "Unknown Org"
-            if session and session.has_key('enterprise'):
-                ename = session['enterprise'].name
-            throttle_name = 'exception-' + exception_name
-            throttle = memcache.get(throttle_name)
-            if throttle is None and not dev:
-                memcache.add(throttle_name, 1, exception_expiration)
-                subject = '[%s] exception for %s [%s: %s]' % (sitename, ename, exception_name, exception_details)
-                body = exception_traceback + "\n\n" + self.request.uri
-                mail.send_mail(to=ERROR_EMAIL, sender=mail_admin,
-                               subject=subject,
-                               body=body)
+        if exception_name not in IGNORE_EXCEPTIONS:
+            logging.error(exception_traceback)
+            send_email = not (suppressed_exceptions and exception_name in suppressed_exceptions)
+            if send_email:
+                exception_expiration = 3600 # seconds (max 1 mail per hour for a particular exception)
+                mail_admin = SENDER_EMAIL # must be admin for the application
+                sitename = SITENAME
+                ver = os.environ['CURRENT_VERSION_ID']
+                dev = any(keyword in ver for keyword in TEST_VERSIONS) or tools.on_dev_server()
+                sitename += ":DEV" if dev else ":PROD"
+                session = self.session
+                ename = "Unknown Org"
+                if session and session.has_key('enterprise'):
+                    ename = session['enterprise'].name
+                throttle_name = 'exception-' + exception_name
+                throttle = memcache.get(throttle_name)
+                if throttle is None and not dev:
+                    memcache.add(throttle_name, 1, exception_expiration)
+                    subject = '[%s] exception for %s [%s: %s]' % (sitename, ename, exception_name, exception_details)
+                    body = exception_traceback + "\n\n" + self.request.uri
+                    mail.send_mail(to=ERROR_EMAIL, sender=mail_admin,
+                                   subject=subject,
+                                   body=body)
         return exception_name, exception_details, exception_traceback
 
     def handle_exception(self, exception, debug_mode):
@@ -138,12 +141,15 @@ class JsonRequestHandler(BaseRequestHandler):
     def handle_exception(self, exception, debug_mode):
         DeadlineExceededError = "DeadlineExceededError"
         HTTPUnauthorized = "HTTPUnauthorized"
+        Shutdown = "Shutdown"
         APIError = "APIError"
-        exception_name, exception_details, exception_traceback = self.process_exception(suppressed_exceptions=[HTTPUnauthorized, APIError])
+        exception_name, exception_details, exception_traceback = self.process_exception(
+            suppressed_exceptions=[HTTPUnauthorized, APIError, Shutdown])
         error_messages = {
             DeadlineExceededError: "The request took too long to process.",
             HTTPUnauthorized: "Request error, please try again", #invalid CSRF token in ajax
-            APIError: exception_details
+            APIError: exception_details,
+            Shutdown: "Instance shutdown"
         }
         if exception_name in error_messages:
             self.json_out(message=error_messages[exception_name], success=False)

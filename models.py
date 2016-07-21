@@ -1304,6 +1304,7 @@ class SensorProcessTask(db.Model):
             'ts_last_run': tools.unixtime(self.dt_last_run, none_now=False),
             'ts_last_run_start': tools.unixtime(self.dt_last_run_start, none_now=False),
             'ts_last_record': tools.unixtime(self.dt_last_record, none_now=False),
+            'sensor_kn': tools.getKey(SensorProcessTask, 'sensor', self, asKeyName=True),
             'running': self.is_running(),
             'duration': self.last_run_duration(),
             'status_last_run': self.status_last_run,

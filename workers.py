@@ -7,15 +7,13 @@ from expressionParser import ExpressionParser
 from google.appengine.ext import db
 from google.appengine.runtime import DeadlineExceededError
 from google.appengine.api import runtime
+from errors import TooLongError, Shutdown
 
 MAX_REQUEST_SECONDS = 40  # TODO: Should this be 5 mins?
 
 USE_DEFERRED = True
 
 
-class TooLongError(Exception):
-    def __init__(self):
-        pass
 
 # TODO
 # Rearchitect to query in window (last run to now (when worker starts))
@@ -168,8 +166,6 @@ class SensorProcessWorker(object):
         logging.debug('runBatch 1')
         self.new_alarms = []
         for record in records:
-            if runtime.is_shutting_down():
-                raise Exception("Instance shutting down")
             new_alarm = self.processRecord(record)
             if new_alarm:
                 self.new_alarms.append(new_alarm)
@@ -339,10 +335,13 @@ class SensorProcessWorker(object):
                     self.finish()
                     break
         except (TooLongError, DeadlineExceededError):
-            logging.debug("Deadline expired, creating new request...")
+            logging.debug("Deadline expired, creating new request... Records: %s, Continuations: %s" % (self.records_processed, self.continuations))
             self.continuations += 1
-            task_name = self.sensorprocess.process_task_name(subset="cont_@%s" % tools.unixtime())
+            task_name = self.sensorprocess.process_task_name(subset="cont_%s" % tools.unixtime())
             tools.safe_add_task(self.run, _name=task_name, _queue="processing-queue")
+        except (Shutdown):
+            logging.debug("Instance shutdown...")
+            self.finish(result=PROCESS.ERROR, narrative="Instance shutdown")
         except Exception, e:
             logging.exception("Uncaught error: %s" % e)
             self.finish(result=PROCESS.ERROR, narrative="Processing Error: %s" % e)

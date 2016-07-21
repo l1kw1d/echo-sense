@@ -40,6 +40,7 @@ export default class Dashboard extends React.Component {
         <span className="title">{ p.label }</span>
         { _running }
         <span className="sub">Last Start: <span data-ts={p.ts_last_run_start}></span></span>
+        <span className="sub">{ p.sensor_kn }</span>
         <a href="javascript:void(0)" className="right" onClick={this.clean_up.bind(this, p)}><i className="fa fa-close"/> Clean Up</a>
       </li>
       );
