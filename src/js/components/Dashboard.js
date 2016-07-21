@@ -5,6 +5,7 @@ var FetchedList = require('components/FetchedList');
 var LoadStatus = require('components/LoadStatus');
 var AppConstants = require('constants/AppConstants');
 var GroupedSelector = require('components/shared/GroupedSelector');
+var api = require('utils/api');
 var mui = require('material-ui'),
   DropDownMenu = mui.DropDownMenu,
   Tabs = mui.Tabs,
@@ -24,6 +25,13 @@ export default class Dashboard extends React.Component {
     };
   }
 
+  clean_up(p) {
+    var sptkey = p.key;
+    api.post("/api/sensorprocesstask/clean_up", {sptkey: sptkey}, (res) => {
+      this.refs.list.remove_item_by_key(sptkey);
+    });
+  }
+
   renderProcesser(p) {
     var _running;
     if (p.running) _running = <i className="fa fa-refresh fa-spin" style={{color: 'green'}} />
@@ -32,7 +40,7 @@ export default class Dashboard extends React.Component {
         <span className="title">{ p.label }</span>
         { _running }
         <span className="sub">Last Start: <span data-ts={p.ts_last_run_start}></span></span>
-        <span className="sub">Duration: <span data-ts={util.secsToDuration(p.duration)}></span></span>
+        <a href="javascript:void(0)" className="right" onClick={this.clean_up.bind(this, p)}><i className="fa fa-close"/> Clean Up</a>
       </li>
       );
   }
@@ -46,7 +54,7 @@ export default class Dashboard extends React.Component {
 
             <Tab label="Processing">
 
-              <FetchedList key="pt" params={{running: 1}} url="/api/sensorprocesstask" listProp="sensorprocesstasks" renderItem={this.renderProcesser.bind(this)} autofetch={true}/>
+              <FetchedList ref="list" key="pt" params={{running: 1}} url="/api/sensorprocesstask" listProp="sensorprocesstasks" renderItem={this.renderProcesser.bind(this)} autofetch={true}/>
 
             </Tab>
 

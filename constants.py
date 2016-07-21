@@ -153,13 +153,14 @@ class COLUMN():
 
 
 class PROCESS():
-    # Statuses for SensorProcess()
+    # Statuses for SensorProcess() and SensorProcessTask()
     NEVER_RUN = 1
     OK = 2
     WARNING = 3
     ERROR = 4
+    CLEANED_UP = 5
 
-    STATUS_LABELS = { NEVER_RUN: "Never Run", OK: "OK", WARNING: "Warning", ERROR: "Error" }
+    STATUS_LABELS = { NEVER_RUN: "Never Run", OK: "OK", WARNING: "Warning", ERROR: "Error", CLEANED_UP: "Cleaned Up" }
 
 class RULE():
   # Trigger

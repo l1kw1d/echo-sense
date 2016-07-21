@@ -720,7 +720,7 @@ class Sensor(UserAccessible):
         Usually called after receiving data.
 
         """
-        spts = SensorProcessTask.Fetch(sensor=self)
+        spts = SensorProcessTask.Fetch(sensor=self, refresh=True)
         for spt in spts:
             spt.schedule_run()
 
@@ -1324,6 +1324,11 @@ class SensorProcessTask(db.Model):
         self.running = False
         self.narrative_last_run = narrative
 
+    def clean_up(self):
+        self.running = False
+        self.status_last_run = PROCESS.CLEANED_UP
+        self.narrative_last_run = "Cleaned up..."
+
     def is_running(self):
         '''
         '''
@@ -1335,7 +1340,6 @@ class SensorProcessTask(db.Model):
                 return False
             is_running = not self.dt_last_run or \
                 (self.dt_last_run_start > self.dt_last_run)
-        logging.debug("Running: %s" % is_running)
         return is_running
 
     def last_run_duration(self):
@@ -1393,10 +1397,9 @@ class SensorProcessTask(db.Model):
             return False
 
     def process_task_name(self, subset=None):
-        prefix = 'prcs_eid_%d_task_%s' % (tools.getKey(SensorProcessTask, 'enterprise', self, asID=True), self.key().name())
+        task_name = 'prcs_eid_%d_task_%s' % (tools.getKey(SensorProcessTask, 'enterprise', self, asID=True), self.key().name())
         if subset:
-            prefix += subset + '_'
-        task_name = prefix + self.key().name()
+            task_name += '_' + subset + '_'
         return task_name
 
     def schedule_run(self):

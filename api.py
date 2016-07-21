@@ -915,6 +915,24 @@ class SensorProcessTaskAPI(handlers.JsonRequestHandler):
                     message = "Task deleted"
         self.json_out({}, message=message, success=success)
 
+    @authorized.role('api')
+    def clean_up(self, d):
+        '''Clear running flag on stalled run
+        '''
+        success = False
+        message = None
+        sptkey = self.request.get('sptkey')
+        spt = SensorProcessTask.get(sptkey)
+        if spt:
+            if spt.is_running():
+                spt.clean_up()
+                spt.put()
+                success = True
+            else:
+                message = "Not running..."
+        else:
+            message = "Task not found"
+        self.json_out({}, success=success, message=message)
 
 class ProcessTaskAPI(handlers.JsonRequestHandler):
     @authorized.role('api')
@@ -1032,6 +1050,8 @@ class ProcessTaskAPI(handlers.JsonRequestHandler):
         else:
             message = "Task not found"
         self.json_out({}, success=success, message=message)
+
+
 
 def backgroundReportRun(rkey, target=None, start_cursor=None):
     r = Report.get(rkey)
