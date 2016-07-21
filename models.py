@@ -1282,11 +1282,12 @@ class SensorProcessTask(db.Model):
     process = db.ReferenceProperty(ProcessTask)
     sensor = db.ReferenceProperty(Sensor)
     dt_created = db.DateTimeProperty(auto_now_add=True)
-    dt_last_run_start = db.DateTimeProperty(indexed=False, default=None)
+    dt_last_run_start = db.DateTimeProperty(default=None)
     dt_last_run = db.DateTimeProperty(default=None) # Finish
     dt_last_record = db.DateTimeProperty(default=None)
     status_last_run = db.IntegerProperty(default=PROCESS.NEVER_RUN)
     narrative_last_run = db.TextProperty()
+    running = db.BooleanProperty(default=False)
 
     def __repr__(self):
         return "<SensorProcess sensor=%s process=%s />" % (self.sensor, self.process)
@@ -1303,7 +1304,8 @@ class SensorProcessTask(db.Model):
             'ts_last_run': tools.unixtime(self.dt_last_run, none_now=False),
             'ts_last_run_start': tools.unixtime(self.dt_last_run_start, none_now=False),
             'ts_last_record': tools.unixtime(self.dt_last_record, none_now=False),
-            'running': self.running(),
+            'running': self.is_running(),
+            'duration': self.last_run_duration(),
             'status_last_run': self.status_last_run,
             'narrative_last_run': self.narrative_last_run
         }
@@ -1311,19 +1313,41 @@ class SensorProcessTask(db.Model):
     def print_status(self):
         return PROCESS.STATUS_LABELS.get(self.status_last_run)
 
-    def running(self):
-        if not self.dt_last_run_start:
-            return False
-        return not self.dt_last_run or \
-            (self.dt_last_run_start > self.dt_last_run)
+    def start(self, start_dt):
+        self.dt_last_run_start = start_dt
+        self.running = True
+
+    def finish(self, result, narrative=None):
+        # logging.debug("Finishing %s: result %s" % (self, result))
+        self.dt_last_run = datetime.now()  # Finish time
+        self.status_last_run = result
+        self.running = False
+        self.narrative_last_run = narrative
+
+    def is_running(self):
+        '''
+        '''
+        # Temporary fix to handle missing running prop
+        if self.running is not None:
+            is_running = self.running
+        else:
+            if not self.dt_last_run_start:
+                return False
+            is_running = not self.dt_last_run or \
+                (self.dt_last_run_start > self.dt_last_run)
+        logging.debug("Running: %s" % is_running)
+        return is_running
 
     def last_run_duration(self):
-        if not self.running() and self.dt_last_run and self.dt_last_run_start:
-            duration = self.dt_last_run - self.dt_last_run_start
-            secs = tools.total_seconds(duration)
-            return secs
-        return None
-
+        start = self.dt_last_run_start
+        if not start:
+            return None
+        end = self.dt_last_run
+        if not end or end < start:
+            end = datetime.now()
+        duration = end - start
+        secs = tools.total_seconds(duration)
+        return secs
 
     @staticmethod
     def _key_name(process, sensor):
@@ -1344,16 +1368,20 @@ class SensorProcessTask(db.Model):
 
     @staticmethod
     @auto_cache()
-    def Fetch(sensor=None, enterprise=None, limit=50):
+    def Fetch(sensor=None, enterprise=None, only_running=False, limit=50):
         if sensor:
             return sensor.sensorprocesstask_set.fetch(limit=limit)
         elif enterprise:
-            return SensorProcessTask.all().ancestor(enterprise).order("-dt_last_run").fetch(limit=limit)
+            if only_running:
+                q = SensorProcessTask.all().ancestor(enterprise).filter("running =", True)
+            else:
+                q = SensorProcessTask.all().ancestor(enterprise).order("-dt_last_run")
+            return q.fetch(limit=limit)
         else:
             return []
 
     def should_run(self):
-        if not self.running():
+        if not self.is_running():
             if self.dt_last_run:
                 if self.sensor.dt_updated:
                     return self.dt_last_run < self.sensor.dt_updated
@@ -1364,15 +1392,27 @@ class SensorProcessTask(db.Model):
         else:
             return False
 
+    def process_task_name(self, subset=None):
+        prefix = 'prcs_eid_%d_task_%s' % (tools.getKey(SensorProcessTask, 'enterprise', self, asID=True), self.key().name())
+        if subset:
+            prefix += subset + '_'
+        task_name = prefix + self.key().name()
+        return task_name
+
     def schedule_run(self):
         from tasks import bgRunSensorProcess
         process = self.process
         if process.can_run_now():
-            if self.running():
+            if self.is_running():
                 logging.info("Not scheduling future run, currently running")
+                duration = self.last_run_duration()
+                if duration and duration > 60*60: # 1 hr
+                    logging.warning("Long run duration: %s seconds" % duration)
             else:
                 mins = max([int(process.interval / 60.), 1])
-                tools.add_batched_task(bgRunSensorProcess, str(self.key()),
+                tools.add_batched_task(
+                    bgRunSensorProcess,
+                    self.process_task_name(),
                     interval_mins=mins,
                     max_jitter_pct=0.2,
                     sptkey=str(self.key()),
@@ -1385,7 +1425,11 @@ class SensorProcessTask(db.Model):
         if self.should_run():
             logging.info("Running %s" % self)
             from tasks import bgRunSensorProcess
-            tools.safe_add_task(bgRunSensorProcess, sptkey=str(self.key()), _queue="processing-queue")
+            tools.safe_add_task(
+                bgRunSensorProcess,
+                sptkey=str(self.key()),
+                _name=self.process_task_name(subset=str(tools.unixtime())),
+                _queue="processing-queue")
             return True
         else:
             logging.debug("No need to run %s" % self)

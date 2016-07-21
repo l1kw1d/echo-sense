@@ -13,6 +13,7 @@ var Targets = require('components/Targets');
 var Groups = require('components/Groups');
 var Sensors = require('components/Sensors');
 var Reports = require('components/Reports');
+var Dashboard = require('components/Dashboard');
 var SensorDetail = require('components/SensorDetail');
 var AlarmDetail = require('components/AlarmDetail');
 var SensorProcessTaskDetail = require('components/SensorProcessTaskDetail');
@@ -75,6 +76,7 @@ module.exports = (
       <Route path="data/:sensorKn" component={DataViewer} />
       <Route path="data/:sensorKn/record/:recordKn" component={RecordDetail} />
       <Route path="manage" component={Manage}/>
+      <Route path="dashboard" component={Dashboard}/>
       <Route path="profile" component={ProfileEditor}/>
       <Route path="logs" component={Logs}/>
       <Route path="admin" component={Admin}>

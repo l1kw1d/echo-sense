@@ -879,9 +879,11 @@ class SensorProcessTaskAPI(handlers.JsonRequestHandler):
         success = False
         message = None
 
+        running = self.request.get_range('running') == 1
+
         _max = self.request.get_range('max', max_value=500, default=20)
 
-        spts = SensorProcessTask.Fetch(enterprise=d['enterprise'], limit=_max, refresh=True)
+        spts = SensorProcessTask.Fetch(enterprise=d['enterprise'], only_running=running, limit=_max, refresh=True)
         success = True
 
         data = {
@@ -1025,6 +1027,8 @@ class ProcessTaskAPI(handlers.JsonRequestHandler):
             success = spt.run()
             if not success:
                 message = "Can't run this task -- already running or no records to process?"
+            else:
+                message = "Running..."
         else:
             message = "Task not found"
         self.json_out({}, success=success, message=message)

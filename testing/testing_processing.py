@@ -169,6 +169,7 @@ class ProcessingTestCase(BaseTestCase):
         # self.assertEqual(a.columnValue('count_alarms'), 2) TODO: This fails!
         self.sp = SensorProcessTask.Get(self.process, self.vehicle_1)
         self.assertEqual(self.sp.status_last_run, PROCESS.OK)
+        self.assertFalse(self.sp.is_running())
 
         # Confirm speeding alarms (2)
         alarms = Alarm.Fetch(self.vehicle_1, self.speeding_alarm)
