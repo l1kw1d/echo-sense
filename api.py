@@ -419,7 +419,7 @@ class SensorAPI(handlers.JsonRequestHandler):
                 # Associate with processer
                 pt = ProcessTask.GetAccessible(params['process_task_id'], d['user'], parent=d['enterprise'])
                 if pt:
-                    spt = SensorProcessTask.Create(d['enterprise'], pt, s)
+                    spt = SensorProcessTask.Create(d['enterprise'], pt, s, last_record_now=True)
                     if spt:
                         spt.put()
             success = True
@@ -1027,10 +1027,10 @@ class ProcessTaskAPI(handlers.JsonRequestHandler):
         pt = ProcessTask.get(key)
         s = Sensor.get(skey)
         if pt and s:
-            spt = SensorProcessTask.Create(d['enterprise'], pt, s)
+            spt = SensorProcessTask.Create(d['enterprise'], pt, s, last_record_now=True)
             if spt:
                 spt.put()
-                SensorProcessTask.Fetch(sensor=s, refresh=True) # Reload autocache
+                SensorProcessTask.Fetch(sensor=s)
                 success = True
         self.json_out({'spt': spt.json() if spt else None}, success=success)
 

@@ -59,6 +59,7 @@ class ExpressionParser(object):
         # TODO: Pass prior record for accurate calcuations such as distance
         # self.prior_batch_last_record = prior_batch_last_record
         self.pattern = self._getPattern()
+        logging.debug("Initialized expression parser with expression: %s" % expr)
 
 
     # Generator to extract operators and operands in pairs

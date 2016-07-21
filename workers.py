@@ -9,8 +9,6 @@ from google.appengine.runtime import DeadlineExceededError
 from google.appengine.api import runtime
 from errors import TooLongError, Shutdown
 
-MAX_REQUEST_SECONDS = 40  # TODO: Should this be 5 mins?
-
 USE_DEFERRED = True
 
 
@@ -71,9 +69,15 @@ class SensorProcessWorker(object):
         return self.dt_last_record
 
     def _query_until(self):
-        # TODO: Should this be most recent record as of time of run?
-        # Avoid future inserts into processing window
-        return self.worker_start
+        '''Define end of processing window as most recent record in db
+            when worker starts.
+
+        '''
+        most_recent_record = self.sensor.record_set.order('-dt_recorded').get()
+        if most_recent_record:
+            return most_recent_record.dt_recorded
+        else:
+            return self.worker_start
 
     def _get_query(self):
         # Since time of last processed record
@@ -81,8 +85,11 @@ class SensorProcessWorker(object):
         # TODO: Should end of range be query of most recent record recorded?
         # If future data comes in (within buffer), processing may be delayed
         # with current setup.
+        _from = self._query_from()
+        if not _from:
+            logging.warning("Querying from beginning of time -- first run?")
         q = self.sensor.record_set \
-            .filter('dt_recorded >', self._query_from()) \
+            .filter('dt_recorded >', _from) \
             .filter('dt_recorded <=', self._query_until()) \
             .order('dt_recorded')
         return q
@@ -99,7 +106,6 @@ class SensorProcessWorker(object):
         return a
 
     def _recent_active_alarm(self, rule_index):
-        logging.debug('_recent_active_alarm')
         alarms = self.recent_alarms[rule_index]
         if alarms:
             alarms = filter(lambda al : al.active(), alarms)
@@ -135,7 +141,6 @@ class SensorProcessWorker(object):
         Returns:
             list: list of lists (Recent Alarm() objects at each rule index, ordered desc. by dt_start)
         '''
-        logging.debug('fetch_recent_alarms')
         recent_alarms = []
         for r in self.rules:
             limit = r.plimit if r.period_limit_enabled() else 1
@@ -143,7 +148,6 @@ class SensorProcessWorker(object):
         return recent_alarms
 
     def fetchBatch(self):
-        logging.debug('fetchBatch')
         if self.cursor:
             self.query.with_cursor(self.cursor)
         batch = self.query.fetch(self.batch_size)
@@ -163,21 +167,19 @@ class SensorProcessWorker(object):
 
         '''
         # Standard processing (alarms)
-        logging.debug('runBatch 1')
         self.new_alarms = []
         for record in records:
             new_alarm = self.processRecord(record)
             if new_alarm:
                 self.new_alarms.append(new_alarm)
 
-        logging.debug('runBatch 2')
         # Analysis processing
         if self.processers:
             for processer in self.processers:
                 run_ms = tools.unixtime(records[-1].dt_recorded) if records else 0
                 self._run_processer(processer, records=records, run_ms=run_ms)
 
-        logging.debug('runBatch 3')
+        # TODO: Can we do this in finish?
         db.put(self.analyses.values())
 
         logging.debug("Ran batch of %d." % (len(records)))
@@ -261,7 +263,11 @@ class SensorProcessWorker(object):
         return (activate, deactivate, val)
 
     def _run_processer(self, processer, records=None, run_ms=0):
-        logging.debug("_run_processer - %s" % processer)
+        '''Run expression-based processer with either:
+            - Standard processing of a batch of records
+            - Upon alarm creation if rule's processing spec is defined
+
+        '''
         if records is None:
             records = []
         key_pattern = processer.get('analysis_key_pattern')
@@ -306,14 +312,14 @@ class SensorProcessWorker(object):
             raise TooLongError()
 
     def finish(self, result=PROCESS.OK, narrative=None):
-        if self.last_record:
+        if self.last_record and self.last_record.dt_recorded:
             self.sensorprocess.dt_last_record = self.last_record.dt_recorded
         if self.updated_alarm_dict:
             alarms = self.updated_alarm_dict.values()
             db.put(alarms)
         self.sensorprocess.finish(result, narrative)
         self.sensorprocess.put()
-        logging.debug("Finished %s in %s seconds. %s records, %s continuations. Last record: %s. Status: %s" % (
+        logging.debug("FINISHED %s in %s seconds. %s records, %s continuations. Last record: %s. Status: %s" % (
             self.sensorprocess,
             self.sensorprocess.last_run_duration(),
             self.records_processed,
@@ -335,13 +341,13 @@ class SensorProcessWorker(object):
                     self.finish()
                     break
         except (TooLongError, DeadlineExceededError):
-            logging.debug("Deadline expired, creating new request... Records: %s, Continuations: %s" % (self.records_processed, self.continuations))
+            logging.debug("Deadline expired, creating new request... Records: %s, Continuations: %s, Last record: %s" % (self.records_processed, self.continuations, self.last_record))
             self.continuations += 1
             task_name = self.sensorprocess.process_task_name(subset="cont_%s" % tools.unixtime())
             tools.safe_add_task(self.run, _name=task_name, _queue="processing-queue")
         except (Shutdown):
-            logging.debug("Instance shutdown...")
+            logging.debug("Finishing because instance shutdown...")
             self.finish(result=PROCESS.ERROR, narrative="Instance shutdown")
         except Exception, e:
-            logging.exception("Uncaught error: %s" % e)
+            logging.error("Uncaught error: %s" % e)
             self.finish(result=PROCESS.ERROR, narrative="Processing Error: %s" % e)

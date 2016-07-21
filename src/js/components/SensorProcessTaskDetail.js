@@ -84,9 +84,9 @@ export default class SensorProcessTaskDetail extends React.Component {
               <b>Last Run Start:</b> <span data-ts={spt.ts_last_run_start}></span><br/>
               <b>Last Run Finish:</b> <span data-ts={spt.ts_last_run}></span><br/>
               <b>Last Record:</b> <span data-ts={spt.ts_last_record}></span><br/>
+              <b>Last Run Status:</b> { status_icon } { AppConstants.PROCESS_STATUS_LABELS[spt.status_last_run] }<br/>
+              <b>Last Run Narrative:</b> { spt.narrative_last_run || "--" }<br/>
               <b>Running:</b> <span>{ spt.running ? "Yes" : "No" }</span><br/>
-              <b>Status:</b> { status_icon } { AppConstants.PROCESS_STATUS_LABELS[spt.status_last_run] }<br/>
-              <b>Narrative:</b> { spt.narrative_last_run || "--" }<br/>
             </div>
 
           </div>

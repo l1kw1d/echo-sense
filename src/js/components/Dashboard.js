@@ -12,7 +12,7 @@ var mui = require('material-ui'),
   Tab = mui.Tab,
   FontIcon = mui.FontIcon,
   MenuItem = mui.MenuItem;
-
+var bootbox = require('bootbox');
 var Link = Router.Link;
 
 export default class Dashboard extends React.Component {
@@ -26,14 +26,25 @@ export default class Dashboard extends React.Component {
   }
 
   clean_up(p) {
-    var sptkey = p.key;
-    api.post("/api/sensorprocesstask/clean_up", {sptkey: sptkey}, (res) => {
-      this.refs.list.remove_item_by_key(sptkey);
+    bootbox.confirm('Cleaning up will mark this process task as not running. Do this only when sure that the task has completed', function(result){
+      if (result) {
+        var sptkey = p.key;
+        api.post("/api/sensorprocesstask/clean_up", {sptkey: sptkey}, (res) => {
+          this.refs.list.remove_item_by_key(sptkey);
+        });
+      }
     });
   }
 
   renderProcesser(p) {
-    var _running;
+    var _running, _long_run;
+    var run_secs = (util.nowTimestamp() - p.ts_last_run_start) / 1000;
+    var long_run = run_secs > 60*15;
+    if (long_run) {
+      _long_run = (
+        <span style={{color: 'red'}}><i className="fa fa-danger" /> Long running</span>
+      );
+    }
     if (p.running) _running = <i className="fa fa-refresh fa-spin" style={{color: 'green'}} />
     return (
       <li className="list-group-item" key={p.key}>
@@ -41,6 +52,7 @@ export default class Dashboard extends React.Component {
         { _running }
         <span className="sub">Last Start: <span data-ts={p.ts_last_run_start}></span></span>
         <span className="sub">{ p.sensor_kn }</span>
+        { _long_run }
         <a href="javascript:void(0)" className="right" onClick={this.clean_up.bind(this, p)}><i className="fa fa-close"/> Clean Up</a>
       </li>
       );

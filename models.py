@@ -289,12 +289,16 @@ class User(UserAccessible):
         if contact_dict:
             for contact_id in contact_id_list:
                 if contact_id in contact_dict:
-                    user = None
                     uid = contact_dict.get(contact_id, None)
+                    try:
+                        uid = long(uid)
+                    except Exception, e:
+                        logging.error("Couldn't coerce uid to long: %s" % uid)
+                        uid = None
                     if uid:
                         uids.append(uid)
         users = User.get_by_id(uids)
-        return [u for u in users if u] # Filter nones
+        return [u for u in users if u]  # Filter nones
 
 
     def Update(self, **params):
@@ -1359,11 +1363,13 @@ class SensorProcessTask(db.Model):
         return "%s_%s" % (process.key().id(), sensor.key().name())
 
     @staticmethod
-    def Create(e, process, sensor):
+    def Create(e, process, sensor, last_record_now=False):
         kn = SensorProcessTask._key_name(process, sensor)
         sp = None
         if kn:
             sp = SensorProcessTask(key_name=kn, parent=e, enterprise=e, sensor=sensor, process=process)
+            if last_record_now:
+                sp.dt_last_record = datetime.now()
         return sp
 
     @staticmethod
@@ -1372,8 +1378,7 @@ class SensorProcessTask(db.Model):
         return SensorProcessTask.get_by_key_name(kn, parent=sensor.enterprise)
 
     @staticmethod
-    @auto_cache()
-    def Fetch(sensor=None, enterprise=None, only_running=False, limit=50):
+    def Fetch(sensor=None, enterprise=None, only_running=False, limit=50, **kwargs):
         if sensor:
             return sensor.sensorprocesstask_set.fetch(limit=limit)
         elif enterprise:
@@ -1544,7 +1549,7 @@ class Record(db.Expando):
     hour = db.IntegerProperty()  # Minutes since UTC epoch (for downsample)
 
     def __repr__(self):
-        return "<Record kn=%s />" % self.key().name()
+        return "<Record kn=%s at=%s />" % (self.key().name(), tools.sdatetime(self.dt_recorded))
 
     def json(self, with_props=True, props_only=False):
         res = {}
@@ -1553,7 +1558,8 @@ class Record(db.Expando):
                 'kn': self.key().name(),
                 'ts': tools.unixtime(self.dt_recorded),
                 'ts_created': tools.unixtime(self.dt_created),
-                'sensor_key': tools.getKey(Record, 'sensor', self, asID=False)
+                'sensor_key': tools.getKey(Record, 'sensor', self, asID=False),
+                'sensor_kn': tools.getKey(Record, 'sensor', self, asID=False, asKeyName=True)
             }
         if with_props:
             res['columns'] = {}
