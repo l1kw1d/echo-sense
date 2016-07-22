@@ -115,9 +115,9 @@ export default class ProcessTaskDetail extends React.Component {
   save() {
     var data = clone(this.state.form);
     if (data.spec) data.spec = JSON.stringify(data.spec);
-    if (data.week_days.length > 0) data.week_days = data.week_days.join(',');
-    if (data.month_days.length > 0) data.month_days = data.month_days.join(',');
-    if (data.rule_ids.length > 0) data.rule_ids = data.rule_ids.join(',');
+    data.week_days = data.week_days.join(',');
+    data.month_days = data.month_days.join(',');
+    data.rule_ids = data.rule_ids.join(',');
     ProcessTaskActions.update(data);
   }
 

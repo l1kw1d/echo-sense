@@ -19,7 +19,8 @@ export default {
     target.prototype.changeHandlerMultiVal = function(key, attr, option_array) {
       var state = {};
       state[key] = this.state[key] || {};
-      var value_array = option_array.map((op) => { return op.value });
+      var value_array = [];
+      if (option_array != null) value_array = option_array.map((op) => { return op.value });
       state[key][attr] = value_array;
       state.lastChange = util.nowTimestamp(); // ms
       this.setState(state);
