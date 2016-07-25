@@ -60,9 +60,14 @@ class GCSReportWorker(object):
         logservice.AUTOFLUSH_EVERY_BYTES = 1024
         logservice.AUTOFLUSH_EVERY_LINES = 1
 
-    def getGCSFilename(self, suffix="MAIN"):
+    def getGCSFilename(self):
         r = self.report
-        filename = GCS_REPORT_BUCKET + "/eid_%d/%s.%s.%s" % (r.enterprise.key().id(), r.key(), suffix, r.extension)
+        title = r.title
+        if title:
+            title = title.replace("/","").replac("?","").replace(" ", "_")
+        else:
+            title = "unnamed"
+        filename = GCS_REPORT_BUCKET + "/eid_%d/%s-%s.%s" % (r.enterprise.key().id(), title, r.key().id(), r.extension)
         r.gcs_files.append(filename)
         return r.gcs_files[-1]
 
