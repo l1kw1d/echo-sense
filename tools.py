@@ -10,6 +10,8 @@ import json
 import geopy
 from decimal import Decimal
 from geopy.distance import VincentyDistance
+from google.appengine.api import app_identity
+import base64
 
 def GenPasswd(length=8, chars=string.letters.upper()):
     return ''.join([random.choice(chars) for i in range(length)])
@@ -879,3 +881,42 @@ def lookup_dict(li, prop):
             val = item
             lookup[keyval] = item
     return lookup
+
+def sign_gcs_url(gcs_filename, expires_after_seconds=6):
+    """ cloudstorage signed url to download cloudstorage object without login
+        Docs : https://cloud.google.com/storage/docs/access-control?hl=bg#Signed-URLs
+        API : https://cloud.google.com/storage/docs/reference-methods?hl=bg#getobject
+    """
+
+    GCS_API_ACCESS_ENDPOINT = 'https://storage.googleapis.com'
+    google_access_id = app_identity.get_service_account_name()
+    method = 'GET'
+    # TODO: decide whether to support content_md5 and content_type as params
+    content_md5, content_type = None, None
+
+    # expiration : number of seconds since epoch
+    expiration_dt = datetime.utcnow() + timedelta(
+        seconds=expires_after_seconds)
+    expiration = int(time.mktime(expiration_dt.timetuple()))
+
+    # Generate the string to sign.
+    signature_string = '\n'.join([
+        method,
+        content_md5 or '',
+        content_type or '',
+        str(expiration),
+        gcs_filename])
+
+    signature_bytes = app_identity.sign_blob(str(signature_string))[1]
+
+    # Set the right query parameters. we use a gae service account for the id
+    query_params = {'GoogleAccessId': google_access_id,
+                    'Expires': str(expiration),
+                    'Signature': base64.b64encode(signature_bytes)}
+
+    # Return the built URL.
+    result = '{endpoint}{resource}?{querystring}'.format(
+        endpoint=GCS_API_ACCESS_ENDPOINT,
+        resource=gcs_filename,
+        querystring=urllib.urlencode(query_params))
+    return str(result)

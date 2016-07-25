@@ -1098,16 +1098,24 @@ class ReportAPI(handlers.JsonRequestHandler):
         r = Report.GetAccessible(rkey, d['user'])
         if r:
             if r.isDone() and r.gcs_files:
-                try:
-                    gcsfn = r.gcs_files[0]
-                    gcs_file = gcs.open(gcsfn, 'r')
-                except gcs.NotFoundError, e:
-                    self.response.out.write("File not found")
+                gcsfn = r.gcs_files[0]
+                if tools.on_dev_server():
+                    try:
+                        gcs_file = gcs.open(gcsfn, 'r')
+                    except gcs.NotFoundError, e:
+                        self.response.out.write("File not found")
+                    else:
+                        self.response.headers['Content-Type'] = Report.contentType(r.extension)
+                        self.response.headers['Content-Disposition'] = str('attachment; filename="%s"' % r.filename())
+                        self.response.write(gcs_file.read())
+                        gcs_file.close()
                 else:
-                    self.response.headers['Content-Type'] = Report.contentType(r.extension)
-                    self.response.headers['Content-Disposition'] = str('attachment; filename="%s"' % r.filename())
-                    self.response.write(gcs_file.read())
-                    gcs_file.close()
+                    # if not localhost, pick the file from GCS directly with a
+                    # public link that expires after [5] seconds.
+                    # Thus, serve very large files without using instance hours
+                    signed_url = tools.sign_gcs_url(gcsfn, expires_after_seconds=5)
+                    response = self.redirect(signed_url)
+                    logging.info(response)
             else:
                 self.json_out(success=False, status=404, message="Report not ready") # Not found
         else:
