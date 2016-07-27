@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from google.appengine.ext import db, blobstore, deferred
 from google.appengine.ext.webapp import blobstore_handlers
-from google.appengine.api import images, taskqueue, users, mail, search
+from google.appengine.api import images, taskqueue, mail, search
 import logging
 from models import *
 import cloudstorage as gcs
@@ -150,7 +150,8 @@ class UserAPI(handlers.JsonRequestHandler):
     def list(self, d):
         message = None
         page, max, offset = tools.paging_params(self.request, limit_default=100)
-        users = self.enterprise.user_set.fetch(limit=max, offset=offset)
+        order_by = self.request.get('order_by')
+        users = User.Fetch(self.enterprise, order_by=order_by, limit=max, offset=offset)
         success = True
         data = {
             'users': [user.json() for user in users]

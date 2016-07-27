@@ -245,6 +245,14 @@ class User(UserAccessible):
         return data
 
     @staticmethod
+    def Fetch(ent, order_by=None, limit=30, offset=0):
+        q = ent.user_set
+        if order_by == 'dt_created':
+            q.order('-dt_created')
+        users = q.fetch(limit=limit, offset=offset)
+        return users
+
+    @staticmethod
     def FuzzyGet(login):
         is_email = tools.is_valid_email(login)
         if is_email:
