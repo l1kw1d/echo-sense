@@ -69,7 +69,7 @@ export default class ManageUsers extends React.Component {
                     ] },
                     { name: 'custom_attrs', label: "Custom Attributes", editable: true, editOnly: true, inputType: "textarea" }
                 ],
-                'add_params': {},
+                'add_params': {'order_by': 'dt_created'},
                 'unique_key': 'id',
                 'max': 50,
                 getListFromJSON: function(data) { return data.data.users; },

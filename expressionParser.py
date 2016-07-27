@@ -1,13 +1,6 @@
-# Author: Jeremy Gordon
-# Version: 0.1
-# Created: August 25, 2014
-# Updated: August 25, 2014
-
-import re
 from google.appengine.ext import db
-import datetime as _dt
 from datetime import datetime
-from pyparsing import Word, Keyword, alphas, ParseException, Literal, CaselessLiteral \
+from lib.pyparsing import Word, Keyword, alphas, ParseException, Literal, CaselessLiteral \
 , Combine, Optional, nums, Or, Forward, ZeroOrMore, StringEnd, alphanums, oneOf \
 , QuotedString, quotedString, removeQuotes, delimitedList, nestedExpr, Suppress, Group, Regex, operatorPrecedence \
 , opAssoc
