@@ -357,6 +357,7 @@ class User(UserAccessible):
         return self.enterprise.get_timezone()
 
     def validatePassword(self, user_password):
+        user_password = tools.normalize_to_ascii(user_password)
         salt, pw_sha = tools.getSHA(user_password, self.pw_salt)
         pw_valid = self.pw_sha == pw_sha
         return pw_valid
