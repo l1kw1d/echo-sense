@@ -64,7 +64,7 @@ class GCSReportWorker(object):
         r = self.report
         title = r.title
         if title:
-            title = title.replace("/","").replac("?","").replace(" ", "_")
+            title = title.replace("/","").replace("?","").replace(" ", "_")
         else:
             title = "unnamed"
         filename = GCS_REPORT_BUCKET + "/eid_%d/%s-%s.%s" % (r.enterprise.key().id(), title, r.key().id(), r.extension)
