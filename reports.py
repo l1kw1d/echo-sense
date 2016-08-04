@@ -368,7 +368,7 @@ class SensorReportWorker(GCSReportWorker):
 
     def entityData(self, sensor):
         sensor_type_id = tools.getKey(Sensor, 'sensortype', sensor, asID=True)
-        row = ["ID:%s" % sensor.key().name(), sensor.name, "ID:%s" % sensor_type_id, tools.sdatetime(sensor.dt_created), sensor.contacts if sensor.contacts else "", ', '.join(sensor.groups)]
+        row = ["ID:%s" % sensor.key().name(), sensor.name, "ID:%s" % sensor_type_id, tools.sdatetime(sensor.dt_created), sensor.contacts if sensor.contacts else "", ', '.join([str(gid) for gid in sensor.group_ids])]
         return row
 
 
@@ -383,7 +383,7 @@ class UserReportWorker(GCSReportWorker):
         self.headers = ["User ID", "Created", "Name", "Email", "Phone", "Groups", "Attributes"]
 
     def entityData(self, u):
-        row = ["ID:%s" % u.key().id(), tools.sdatetime(u.dt_created), u.name, u.email if u.email else "", u.phone if u.phone else "", ', '.join(u.group_ids), u.custom_attrs if u.custom_attrs else ""]
+        row = ["ID:%s" % u.key().id(), tools.sdatetime(u.dt_created), u.name, u.email if u.email else "", u.phone if u.phone else "", ', '.join([str(gid) for gid in u.group_ids]), u.custom_attrs if u.custom_attrs else ""]
         return row
 
 
