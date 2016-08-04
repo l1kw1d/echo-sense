@@ -2007,6 +2007,12 @@ class Report(UserAccessible):
         elif self.type == REPORT.APILOG_REPORT:
             from reports import APILogReportWorker
             worker = APILogReportWorker(self.key())
+        elif self.type == REPORT.SENSOR_REPORT:
+            from reports import SensorReportWorker
+            worker = SensorReportWorker(self.key())
+        elif self.type == REPORT.USER_REPORT:
+            from reports import UserReportWorker
+            worker = UserReportWorker(self.key())
         else:
             worker = None
         if worker and self.status not in [REPORT.ERROR, REPORT.CANCELLED]:

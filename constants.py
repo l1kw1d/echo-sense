@@ -103,6 +103,8 @@ class REPORT():
     ALARM_REPORT = 2
     ANALYSIS_REPORT = 3
     APILOG_REPORT = 4
+    SENSOR_REPORT = 5
+    USER_REPORT = 6
 
     #status
     CREATED = 1
