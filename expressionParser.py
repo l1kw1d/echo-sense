@@ -5,6 +5,7 @@ from lib.pyparsing import Word, Keyword, alphas, ParseException, Literal, Casele
 , QuotedString, quotedString, removeQuotes, delimitedList, nestedExpr, Suppress, Group, Regex, operatorPrecedence \
 , opAssoc
 import math
+import sys
 import tools
 from constants import *
 import logging
@@ -336,16 +337,17 @@ class ExpressionParser(object):
             # logging.debug("Parsing: %s" % self.expr)
             # try parsing the input string
             try:
-                L=self.pattern.parseString( self.expr )
+                L = self.pattern.parseString(self.expr)
             except ParseException, err:
-                L=['Parse Failure',self.expr]
+                L = ['Parse Failure', self.expr]
                 if self.verbose:
                     logging.error('Parse Failure')
                     logging.error(err.line)
                     logging.error(" "*(err.column-1) + "^")
                     logging.error(err)
-            except Exception, err:
-                logging.error("Other error occurred in parse_it for < %s >: %s" % (self.expr, err))
+            except:
+                e = sys.exc_info()[0]
+                logging.error("Other error occurred in parse_it for < %s >: %s" % (self.expr, e))
             else:
                 if self.verbose:
                     logging.debug("%s -> %s" % (self.expr, L[0]))
