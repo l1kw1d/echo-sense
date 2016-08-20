@@ -80,9 +80,10 @@ export default class RecordDetail extends React.Component {
           <h1>{ util.printDate(r.ts, true) } ( { sensorKn })</h1>
           <div>
             <b>Recorded:</b> <span>{ util.printDate(r.ts, true) }</span><br/>
-            <b>Created:</b> <span>{ util.printDate(r.ts_created, true) }</span>
+            <b>Created:</b> <span>{ util.printDate(r.ts_created, true) }</span><br/>
+            <b>Sensor:</b> <span><Link to={`/app/sensors/${r.sensor_kn}`}>{ r.sensor_kn }</Link></span>
 
-            <h2>Data Columns</h2>
+            <h2>Data</h2>
             <ul className="list-group">
               { _columns }
             </ul>

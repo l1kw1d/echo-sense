@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.org/echomobi/echo-sense.svg?branch=develop)](https://travis-ci.org/echomobi/echo-sense)
 [![Stories in Ready](https://badge.waffle.io/echomobi/echo-sense.png?label=ready&title=Ready)](http://waffle.io/echomobi/echo-sense)
+[![Code Climate](https://codeclimate.com/github/echomobi/echo-sense/badges/gpa.svg)](https://codeclimate.com/github/echomobi/echo-sense)
 
 Echo Sense is a generic M2M/sensor platform that runs on Google Cloud Platform, and has 4 primary functions:
 

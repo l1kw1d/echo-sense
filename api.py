@@ -1,9 +1,7 @@
-import os, logging
-from datetime import datetime,timedelta
-import webapp2
+from datetime import datetime, timedelta
 from google.appengine.ext import db, blobstore, deferred
 from google.appengine.ext.webapp import blobstore_handlers
-from google.appengine.api import images, taskqueue, users, mail, search
+from google.appengine.api import images, taskqueue, mail, search
 import logging
 from models import *
 import cloudstorage as gcs
@@ -15,6 +13,7 @@ import authorized
 import json
 
 import handlers
+
 
 class PublicAPI(handlers.JsonRequestHandler):
 
@@ -97,7 +96,8 @@ class EnterpriseAPI(handlers.JsonRequestHandler):
         message = None
         ent = None
         key = self.request.get('key')
-        params = tools.gets(self, strings=['name','country','timezone','alias'], integers=['default_sensortype'], json=['gateway_config'], ignoreMissing=True)
+        params = tools.gets(self, strings=['name','country','timezone','alias'],
+            integers=['default_sensortype'], json=['gateway_config'], ignoreMissing=True)
         if key:
             ent = Enterprise.get(key)
         elif params.get('name'):
@@ -117,7 +117,6 @@ class EnterpriseAPI(handlers.JsonRequestHandler):
     def delete(self, d):
         success = False
         message = None
-        pm = None
         key = self.request.get('key')
         if key:
             ent = Enterprise.get(key)
@@ -143,6 +142,7 @@ class EnterpriseAPI(handlers.JsonRequestHandler):
         }
         self.json_out(data=data, message=message, success=success)
 
+
 class UserAPI(handlers.JsonRequestHandler):
     """
     """
@@ -150,7 +150,8 @@ class UserAPI(handlers.JsonRequestHandler):
     def list(self, d):
         message = None
         page, max, offset = tools.paging_params(self.request, limit_default=100)
-        users = self.enterprise.user_set.fetch(limit=max, offset=offset)
+        order_by = self.request.get('order_by')
+        users = User.Fetch(self.enterprise, order_by=order_by, limit=max, offset=offset)
         success = True
         data = {
             'users': [user.json() for user in users]
@@ -174,7 +175,9 @@ class UserAPI(handlers.JsonRequestHandler):
         success = False
         message = None
         id = self.request.get_range('id')
-        params = tools.gets(self, strings=['name','password','phone','email','location_text','currency'], integers=['level', 'alert_channel'], lists=['group_ids'], json=['custom_attrs'], ignoreMissing=True)
+        params = tools.gets(self, strings=['name', 'password', 'phone', 'email', 'location_text', 'currency'],
+            integers=['level', 'alert_channel'], lists=['group_ids'],
+            json=['custom_attrs'], ignoreMissing=True)
         user = None
         isSelf = False
         if id:
@@ -256,7 +259,7 @@ class SensorMediaAPI(handlers.JsonRequestHandler):
                     pm.Update(**params)
                     pm.put()
                     p.Update()
-                    p.put() # Change update timestamp
+                    p.put()  # Change update timestamp
                     success = True
         else:
             message = "Malformed"
@@ -326,10 +329,10 @@ class SensorAPI(handlers.JsonRequestHandler):
         success = False
         message = None
 
-        key_names = self.request.get('key_names') # comma sep
+        key_names = self.request.get('key_names')  # comma sep
         page, _max, offset = tools.paging_params(self.request, limit_default=100)
         with_records = self.request.get_range('with_records', default=0)
-        ms_updated_since = self.request.get_range('updated_since', default=0) # ms
+        ms_updated_since = self.request.get_range('updated_since', default=0)  # ms
         target_id = self.request.get_range('target_id')
         order_by = self.request.get('order_by')
         group_id = self.request.get_range('group_id')
@@ -417,7 +420,7 @@ class SensorAPI(handlers.JsonRequestHandler):
                 # Associate with processer
                 pt = ProcessTask.GetAccessible(params['process_task_id'], d['user'], parent=d['enterprise'])
                 if pt:
-                    spt = SensorProcessTask.Create(d['enterprise'], pt, s)
+                    spt = SensorProcessTask.Create(d['enterprise'], pt, s, last_record_now=True)
                     if spt:
                         spt.put()
             success = True
@@ -467,6 +470,7 @@ class SensorAPI(handlers.JsonRequestHandler):
         else:
             message = "Sensor not found"
         self.json_out({}, message=message, success=success)
+
 
 class SensorTypeAPI(handlers.JsonRequestHandler):
     @authorized.role('api')
@@ -633,7 +637,7 @@ class TargetAPI(handlers.JsonRequestHandler):
         message = None
 
         _max = self.request.get_range('max', max_value=500, default=100)
-        ms_updated_since = self.request.get_range('updated_since', default=0) # ms
+        ms_updated_since = self.request.get_range('updated_since', default=0)  # ms
         group_id = self.request.get_range("group_id")
 
         updated_since = tools.dt_from_ts(ms_updated_since) if ms_updated_since else None
@@ -689,7 +693,7 @@ class TargetAPI(handlers.JsonRequestHandler):
     @authorized.role('api')
     def delete(self, d):
         success = False
-        message = None
+        message = id = None
         key = self.request.get('key')
         target = Target.get(key)
         if target:
@@ -697,7 +701,7 @@ class TargetAPI(handlers.JsonRequestHandler):
             if success:
                 id = target.key().id()
         else:
-            message = "Target type not found"
+            message = "Target not found"
         self.json_out({"key": key, "id": id}, message=message, success=success)
 
 
@@ -876,9 +880,11 @@ class SensorProcessTaskAPI(handlers.JsonRequestHandler):
         success = False
         message = None
 
+        running = self.request.get_range('running') == 1
+
         _max = self.request.get_range('max', max_value=500, default=20)
 
-        spts = SensorProcessTask.Fetch(enterprise=d['enterprise'], limit=_max)
+        spts = SensorProcessTask.Fetch(enterprise=d['enterprise'], only_running=running, limit=_max, refresh=True)
         success = True
 
         data = {
@@ -910,6 +916,24 @@ class SensorProcessTaskAPI(handlers.JsonRequestHandler):
                     message = "Task deleted"
         self.json_out({}, message=message, success=success)
 
+    @authorized.role('api')
+    def clean_up(self, d):
+        '''Clear running flag on stalled run
+        '''
+        success = False
+        message = None
+        sptkey = self.request.get('sptkey')
+        spt = SensorProcessTask.get(sptkey)
+        if spt:
+            if spt.is_running():
+                spt.clean_up()
+                spt.put()
+                success = True
+            else:
+                message = "Not running..."
+        else:
+            message = "Task not found"
+        self.json_out({}, success=success, message=message)
 
 class ProcessTaskAPI(handlers.JsonRequestHandler):
     @authorized.role('api')
@@ -1004,10 +1028,10 @@ class ProcessTaskAPI(handlers.JsonRequestHandler):
         pt = ProcessTask.get(key)
         s = Sensor.get(skey)
         if pt and s:
-            spt = SensorProcessTask.Create(d['enterprise'], pt, s)
+            spt = SensorProcessTask.Create(d['enterprise'], pt, s, last_record_now=True)
             if spt:
                 spt.put()
-                SensorProcessTask.Fetch(sensor=s, refresh=True) # Reload autocache
+                SensorProcessTask.Fetch(sensor=s)
                 success = True
         self.json_out({'spt': spt.json() if spt else None}, success=success)
 
@@ -1019,9 +1043,16 @@ class ProcessTaskAPI(handlers.JsonRequestHandler):
         sptkey = self.request.get('sptkey')  # Key of SensorProcessTask()
         spt = SensorProcessTask.get(sptkey)
         if spt:
-            spt.run()
-            success = True
-        self.json_out({}, success=success)
+            success = spt.run()
+            if not success:
+                message = "Can't run this task -- already running or no records to process?"
+            else:
+                message = "Running..."
+        else:
+            message = "Task not found"
+        self.json_out({}, success=success, message=message)
+
+
 
 def backgroundReportRun(rkey, target=None, start_cursor=None):
     r = Report.get(rkey)
@@ -1047,14 +1078,17 @@ class ReportAPI(handlers.JsonRequestHandler):
 
     @authorized.role('api')
     def generate(self, d):
-        type = self.request.get_range('type', default=REPORT.SENSOR_DATA_REPORT)
+        from handlers import APIError
+        type = self.request.get_range('type')
+        if not type:
+            raise APIError("No type in report request")
         ftype = self.request.get_range('ftype', default=REPORT.CSV)
         target = self.request.get('target')
         specs_json = self.request.get('specs_json')
         specs = tools.getJson(specs_json)
         report = Report.Create(d['enterprise'], type=type, specs=specs, ftype=ftype)
         report.put()
-        tools.safe_add_task(backgroundReportRun, str(report.key()), target=target, _queue="worker-queue")
+        tools.safe_add_task(backgroundReportRun, str(report.key()), target=target, _queue="report-queue")
         self.json_out(success=True, message="%s generating..." % report.title, data={
             'report': report.json() if report else None
             })
@@ -1065,16 +1099,24 @@ class ReportAPI(handlers.JsonRequestHandler):
         r = Report.GetAccessible(rkey, d['user'])
         if r:
             if r.isDone() and r.gcs_files:
-                try:
-                    gcsfn = r.gcs_files[0]
-                    gcs_file = gcs.open(gcsfn, 'r')
-                except gcs.NotFoundError, e:
-                    self.response.out.write("File not found")
+                gcsfn = r.gcs_files[0]
+                if tools.on_dev_server():
+                    try:
+                        gcs_file = gcs.open(gcsfn, 'r')
+                    except gcs.NotFoundError, e:
+                        self.response.out.write("File not found")
+                    else:
+                        self.response.headers['Content-Type'] = Report.contentType(r.extension)
+                        self.response.headers['Content-Disposition'] = str('attachment; filename="%s"' % r.filename())
+                        self.response.write(gcs_file.read())
+                        gcs_file.close()
                 else:
-                    self.response.headers['Content-Type'] = Report.contentType(r.extension)
-                    self.response.headers['Content-Disposition'] = str('attachment; filename="%s"' % r.filename())
-                    self.response.write(gcs_file.read())
-                    gcs_file.close()
+                    # if not localhost, pick the file from GCS directly with a
+                    # public link that expires after [5] seconds.
+                    # Thus, serve very large files without using instance hours
+                    signed_url = tools.sign_gcs_url(gcsfn, expires_after_seconds=5)
+                    response = self.redirect(signed_url)
+                    logging.info(response)
             else:
                 self.json_out(success=False, status=404, message="Report not ready") # Not found
         else:

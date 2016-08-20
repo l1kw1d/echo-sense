@@ -128,6 +128,23 @@ export default class Reports extends React.Component {
 
         <h2>Generate Report</h2>
         <Tabs>
+
+          <Tab label="Sensors">
+
+            <br/>
+            <div className="alert alert-info">Generate a report of all sensors</div>
+
+            <RaisedButton label="Generate" primary={true} icon={<FontIcon className="material-icons">play_circle_filled</FontIcon>} onClick={this.generate_report.bind(this, 5)} />
+          </Tab>
+
+          <Tab label="Users">
+
+            <br/>
+            <div className="alert alert-info">Generate a report of all users</div>
+
+            <RaisedButton label="Generate" primary={true} icon={<FontIcon className="material-icons">play_circle_filled</FontIcon>} onClick={this.generate_report.bind(this, 6)} />
+          </Tab>
+
           <Tab label="Records">
 
             <br/>

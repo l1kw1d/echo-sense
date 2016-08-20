@@ -1,17 +1,11 @@
-# Author: Jeremy Gordon
-# Version: 0.1
-# Created: August 25, 2014
-# Updated: August 25, 2014
-
-import re
 from google.appengine.ext import db
-import datetime as _dt
 from datetime import datetime
-from pyparsing import Word, Keyword, alphas, ParseException, Literal, CaselessLiteral \
+from lib.pyparsing import Word, Keyword, alphas, ParseException, Literal, CaselessLiteral \
 , Combine, Optional, nums, Or, Forward, ZeroOrMore, StringEnd, alphanums, oneOf \
 , QuotedString, quotedString, removeQuotes, delimitedList, nestedExpr, Suppress, Group, Regex, operatorPrecedence \
 , opAssoc
 import math
+import sys
 import tools
 from constants import *
 import logging
@@ -59,6 +53,7 @@ class ExpressionParser(object):
         # TODO: Pass prior record for accurate calcuations such as distance
         # self.prior_batch_last_record = prior_batch_last_record
         self.pattern = self._getPattern()
+        logging.debug("Initialized expression parser with expression: %s" % expr)
 
 
     # Generator to extract operators and operands in pairs
@@ -342,16 +337,17 @@ class ExpressionParser(object):
             # logging.debug("Parsing: %s" % self.expr)
             # try parsing the input string
             try:
-                L=self.pattern.parseString( self.expr )
+                L = self.pattern.parseString(self.expr)
             except ParseException, err:
-                L=['Parse Failure',self.expr]
+                L = ['Parse Failure', self.expr]
                 if self.verbose:
                     logging.error('Parse Failure')
                     logging.error(err.line)
                     logging.error(" "*(err.column-1) + "^")
                     logging.error(err)
-            except Exception, err:
-                logging.error("Other error occurred in parse_it for < %s >: %s" % (self.expr, err))
+            except:
+                e = sys.exc_info()[0]
+                logging.error("Other error occurred in parse_it for < %s >: %s" % (self.expr, e))
             else:
                 if self.verbose:
                     logging.debug("%s -> %s" % (self.expr, L[0]))

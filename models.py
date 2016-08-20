@@ -245,6 +245,14 @@ class User(UserAccessible):
         return data
 
     @staticmethod
+    def Fetch(ent, order_by=None, limit=30, offset=0):
+        q = ent.user_set
+        if order_by == 'dt_created':
+            q.order('-dt_created')
+        users = q.fetch(limit=limit, offset=offset)
+        return users
+
+    @staticmethod
     def FuzzyGet(login):
         is_email = tools.is_valid_email(login)
         if is_email:
@@ -289,12 +297,16 @@ class User(UserAccessible):
         if contact_dict:
             for contact_id in contact_id_list:
                 if contact_id in contact_dict:
-                    user = None
                     uid = contact_dict.get(contact_id, None)
+                    try:
+                        uid = long(uid)
+                    except Exception, e:
+                        logging.error("Couldn't coerce uid to long: %s" % uid)
+                        uid = None
                     if uid:
                         uids.append(uid)
         users = User.get_by_id(uids)
-        return [u for u in users if u] # Filter nones
+        return [u for u in users if u]  # Filter nones
 
 
     def Update(self, **params):
@@ -345,6 +357,7 @@ class User(UserAccessible):
         return self.enterprise.get_timezone()
 
     def validatePassword(self, user_password):
+        user_password = tools.normalize_to_ascii(user_password)
         salt, pw_sha = tools.getSHA(user_password, self.pw_salt)
         pw_valid = self.pw_sha == pw_sha
         return pw_valid
@@ -720,7 +733,7 @@ class Sensor(UserAccessible):
         Usually called after receiving data.
 
         """
-        spts = SensorProcessTask.Fetch(sensor=self)
+        spts = SensorProcessTask.Fetch(sensor=self, refresh=True)
         for spt in spts:
             spt.schedule_run()
 
@@ -781,6 +794,7 @@ class Sensor(UserAccessible):
                             if 'calculation' in colschema:
                                 calc = colschema.get('calculation')
                                 if calc:
+                                    # Build expression parsers to be passed into record creation
                                     expression_parser_by_col[column] = ExpressionParser(calc, column)
                                     continue
                         # Sort with newest records last
@@ -830,7 +844,7 @@ class Rule(db.Model):
     """
     Parent - Enterprise
     Key - ID
-    Spec of alarm, e.g. speeding, over-heating
+    Conditions during which to fire alarm, e.g. speeding, over-heating, geo-fence
     Can optionally include alerts to send (recipients defined by sensor)
     or payments to make
     """
@@ -1087,7 +1101,6 @@ class Analysis(db.Expando):
                 res['columns'][prop] = self.columnValue(prop)
         return res
 
-
     def columnValue(self, column, default=None):
         return getattr(self, column, default)
 
@@ -1110,7 +1123,7 @@ class Analysis(db.Expando):
             ('%Y', datetime.strftime(now, '%Y')),
             ('%M', datetime.strftime(now, '%m')),
             ('%D', datetime.strftime(now, '%d')),
-            ('%W', datetime.strftime(now, '%W')) # Python style week number (0-53)
+            ('%W', datetime.strftime(now, '%W'))  # Python style week number (0-53)
         ]
         for rep in REPL:
             analysis_key_pattern = analysis_key_pattern.replace(rep[0], rep[1])
@@ -1126,7 +1139,9 @@ class Analysis(db.Expando):
         Pass one of analysis_key_pattern or kn
         '''
         kn = Analysis._key_name(analysis_key_pattern, sensor=sensor)
-        a = Analysis.get_or_insert(kn, parent=sensor.enterprise, enterprise=sensor.enterprise, sensor=sensor, sensortype=sensor.sensortype)
+        a = Analysis.get_or_insert(kn, parent=sensor.enterprise,
+            enterprise=sensor.enterprise, sensor=sensor,
+            sensortype=sensor.sensortype)
         return a
 
     @staticmethod
@@ -1143,6 +1158,7 @@ class Analysis(db.Expando):
 
     def Update(self, **params):
         pass
+
 
 class ProcessTask(UserAccessible):
     """
@@ -1174,7 +1190,7 @@ class ProcessTask(UserAccessible):
     time_end = db.TimeProperty(indexed=False)  # UTC
     # Scheduling - OR of the below
     month_days = db.ListProperty(int, indexed=False)  # 1 - 31
-    week_days = db.ListProperty(int, default=[1,2,3,4,5,6,7], indexed=False)  # 1 - 7 (Mon - Sun)
+    week_days = db.ListProperty(int, default=[1, 2, 3, 4, 5, 6, 7], indexed=False)  # 1 - 7 (Mon - Sun)
     rule_ids = db.ListProperty(int, indexed=False)
     label = db.StringProperty(indexed=False)
     # JSON spec for ExpressionParser (cleaning, calculations, and production of analysis records). TODO: Validate
@@ -1210,7 +1226,8 @@ class ProcessTask(UserAccessible):
         return self.sensorprocesstask_set.fetch(limit=limit)
 
     def get_rules(self):
-        return [rule for rule in Rule.get_by_id(self.rule_ids, parent=self.enterprise) if rule]
+        return [rule for rule in Rule.get_by_id(self.rule_ids,
+            parent=self.enterprise) if rule]
 
     def can_run_now(self):
         today_ok = self.runs_today()
@@ -1225,7 +1242,7 @@ class ProcessTask(UserAccessible):
         now = datetime.now()
         if day_offset:
             now = now + timedelta(days=day_offset)
-        day_of_week = now.weekday() + 1 # 1-7 M-Su
+        day_of_week = now.weekday() + 1  # 1-7 M-Su
         day_of_month = now.day
         return day_of_week in self.week_days or day_of_month in self.month_days
 
@@ -1278,10 +1295,12 @@ class SensorProcessTask(db.Model):
     process = db.ReferenceProperty(ProcessTask)
     sensor = db.ReferenceProperty(Sensor)
     dt_created = db.DateTimeProperty(auto_now_add=True)
-    dt_last_run = db.DateTimeProperty(default=None)
+    dt_last_run_start = db.DateTimeProperty(default=None)
+    dt_last_run = db.DateTimeProperty(default=None) # Finish
     dt_last_record = db.DateTimeProperty(default=None)
     status_last_run = db.IntegerProperty(default=PROCESS.NEVER_RUN)
     narrative_last_run = db.TextProperty()
+    running = db.BooleanProperty(default=False)
 
     def __repr__(self):
         return "<SensorProcess sensor=%s process=%s />" % (self.sensor, self.process)
@@ -1295,8 +1314,12 @@ class SensorProcessTask(db.Model):
             'kn': self.key().name(),
             'label': str(self),
             'process_task_label': self.process.label, # Inefficient
-            'ts_last_run': tools.unixtime(self.dt_last_run),
-            'ts_last_record': tools.unixtime(self.dt_last_record),
+            'ts_last_run': tools.unixtime(self.dt_last_run, none_now=False),
+            'ts_last_run_start': tools.unixtime(self.dt_last_run_start, none_now=False),
+            'ts_last_record': tools.unixtime(self.dt_last_record, none_now=False),
+            'sensor_kn': tools.getKey(SensorProcessTask, 'sensor', self, asKeyName=True),
+            'running': self.is_running(),
+            'duration': self.last_run_duration(),
             'status_last_run': self.status_last_run,
             'narrative_last_run': self.narrative_last_run
         }
@@ -1304,16 +1327,58 @@ class SensorProcessTask(db.Model):
     def print_status(self):
         return PROCESS.STATUS_LABELS.get(self.status_last_run)
 
+    def start(self, start_dt):
+        self.dt_last_run_start = start_dt
+        self.running = True
+
+    def finish(self, result, narrative=None):
+        # logging.debug("Finishing %s: result %s" % (self, result))
+        self.dt_last_run = datetime.now()  # Finish time
+        self.status_last_run = result
+        self.running = False
+        self.narrative_last_run = narrative
+
+    def clean_up(self):
+        self.running = False
+        self.status_last_run = PROCESS.CLEANED_UP
+        self.narrative_last_run = "Cleaned up..."
+
+    def is_running(self):
+        '''
+        '''
+        # Temporary fix to handle missing running prop
+        if self.running is not None:
+            is_running = self.running
+        else:
+            if not self.dt_last_run_start:
+                return False
+            is_running = not self.dt_last_run or \
+                (self.dt_last_run_start > self.dt_last_run)
+        return is_running
+
+    def last_run_duration(self):
+        start = self.dt_last_run_start
+        if not start:
+            return None
+        end = self.dt_last_run
+        if not end or end < start:
+            end = datetime.now()
+        duration = end - start
+        secs = tools.total_seconds(duration)
+        return secs
+
     @staticmethod
     def _key_name(process, sensor):
         return "%s_%s" % (process.key().id(), sensor.key().name())
 
     @staticmethod
-    def Create(e, process, sensor):
+    def Create(e, process, sensor, last_record_now=False):
         kn = SensorProcessTask._key_name(process, sensor)
         sp = None
         if kn:
             sp = SensorProcessTask(key_name=kn, parent=e, enterprise=e, sensor=sensor, process=process)
+            if last_record_now:
+                sp.dt_last_record = datetime.now()
         return sp
 
     @staticmethod
@@ -1322,30 +1387,56 @@ class SensorProcessTask(db.Model):
         return SensorProcessTask.get_by_key_name(kn, parent=sensor.enterprise)
 
     @staticmethod
-    @auto_cache()
-    def Fetch(sensor=None, enterprise=None, limit=50):
+    def Fetch(sensor=None, enterprise=None, only_running=False, limit=50, **kwargs):
         if sensor:
             return sensor.sensorprocesstask_set.fetch(limit=limit)
         elif enterprise:
-            return SensorProcessTask.all().ancestor(enterprise).order("-dt_last_run").fetch(limit=limit)
+            if only_running:
+                q = SensorProcessTask.all().ancestor(enterprise).filter("running =", True)
+            else:
+                q = SensorProcessTask.all().ancestor(enterprise).order("-dt_last_run")
+            return q.fetch(limit=limit)
         else:
             return []
 
     def should_run(self):
-        if self.dt_last_run:
-            if self.sensor.dt_updated:
-                return self.dt_last_run < self.sensor.dt_updated
+        if not self.is_running():
+            if self.dt_last_run:
+                if self.sensor.dt_updated:
+                    return self.dt_last_run < self.sensor.dt_updated
+                else:
+                    return False
             else:
-                return False
+                return True
         else:
-            return True
+            return False
+
+    def process_task_name(self, subset=None):
+        task_name = 'prcs_eid_%d_task_%s' % (tools.getKey(SensorProcessTask, 'enterprise', self, asID=True), self.key().name())
+        if subset:
+            task_name += '_' + subset + '_'
+        return task_name
 
     def schedule_run(self):
         from tasks import bgRunSensorProcess
         process = self.process
         if process.can_run_now():
-            mins = max([int(process.interval / 60.), 1])
-            tools.add_batched_task(bgRunSensorProcess, str(self.key()), interval_mins=mins, max_jitter_pct=0.2, sptkey=str(self.key()))
+            if self.is_running():
+                logging.info("Not scheduling future run, currently running")
+                duration = self.last_run_duration()
+                if duration and duration > 60*60:  # 1 hr
+                    warning_message = "Long run duration: %s seconds for %s" % (duration, str(self))
+                    logging.warning(warning_message)
+                    deferred.defer(mail.send_mail, SENDER_EMAIL, NOTIF_EMAILS, EMAIL_PREFIX + " Long Running Task", warning_message)
+            else:
+                mins = max([int(process.interval / 60.), 1])
+                tools.add_batched_task(
+                    bgRunSensorProcess,
+                    self.process_task_name(),
+                    interval_mins=mins,
+                    max_jitter_pct=0.2,
+                    sptkey=str(self.key()),
+                    _queue="processing-queue")
         else:
             logging.info("%s can't run now" % self)
 
@@ -1354,7 +1445,11 @@ class SensorProcessTask(db.Model):
         if self.should_run():
             logging.info("Running %s" % self)
             from tasks import bgRunSensorProcess
-            tools.safe_add_task(bgRunSensorProcess, sptkey=str(self.key()))
+            tools.safe_add_task(
+                bgRunSensorProcess,
+                sptkey=str(self.key()),
+                _name=self.process_task_name(subset=str(tools.unixtime())),
+                _queue="processing-queue")
             return True
         else:
             logging.debug("No need to run %s" % self)
@@ -1465,7 +1560,7 @@ class Record(db.Expando):
     hour = db.IntegerProperty()  # Minutes since UTC epoch (for downsample)
 
     def __repr__(self):
-        return "<Record kn=%s />" % self.key().name()
+        return "<Record kn=%s at=%s />" % (self.key().name(), tools.sdatetime(self.dt_recorded))
 
     def json(self, with_props=True, props_only=False):
         res = {}
@@ -1474,7 +1569,8 @@ class Record(db.Expando):
                 'kn': self.key().name(),
                 'ts': tools.unixtime(self.dt_recorded),
                 'ts_created': tools.unixtime(self.dt_created),
-                'sensor_key': tools.getKey(Record, 'sensor', self, asID=False)
+                'sensor_key': tools.getKey(Record, 'sensor', self, asID=False),
+                'sensor_kn': tools.getKey(Record, 'sensor', self, asID=False, asKeyName=True)
             }
         if with_props:
             res['columns'] = {}
@@ -1707,7 +1803,6 @@ class Alarm(db.Model):
             q.filter("rule =", rule)
         return q.fetch(limit=limit, offset=offset)
 
-
     def deactivate(self):
         self.is_active = False
 
@@ -1914,6 +2009,12 @@ class Report(UserAccessible):
         elif self.type == REPORT.APILOG_REPORT:
             from reports import APILogReportWorker
             worker = APILogReportWorker(self.key())
+        elif self.type == REPORT.SENSOR_REPORT:
+            from reports import SensorReportWorker
+            worker = SensorReportWorker(self.key())
+        elif self.type == REPORT.USER_REPORT:
+            from reports import UserReportWorker
+            worker = UserReportWorker(self.key())
         else:
             worker = None
         if worker and self.status not in [REPORT.ERROR, REPORT.CANCELLED]:
@@ -1975,7 +2076,7 @@ class APILog(UserAccessible):
     host = db.TextProperty()
     path = db.TextProperty()
     status = db.IntegerProperty(indexed=False)
-    request = db.TextProperty() # With authentication params stripped
+    request = db.TextProperty()  # With authentication params stripped
     method = db.TextProperty()
     date = db.DateTimeProperty(auto_now_add=True)
     # Response
