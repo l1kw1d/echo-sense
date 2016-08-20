@@ -27,7 +27,7 @@ export default class Manage extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            tab: "sensors"
+            tab: "stypes"
         };
     }
 
@@ -60,8 +60,8 @@ export default class Manage extends React.Component {
         var props;
         var tab = this.state.tab;
         var tabs = [
-            {id: 'sensors', label: "Sensors"},
             {id: 'stypes', label: "Sensor Types"},
+            {id: 'sensors', label: "Sensors"},
             {id: 'targets', label: "Targets"}
         ];
         if (tab == "sensors") {
@@ -81,7 +81,6 @@ export default class Manage extends React.Component {
                 'attributes': [
                     { name: 'kn', label: "Key Name", editable: true, fixed: true },
                     { name: 'name', label: "Name", editable: true },
-                    { name: 'contacts', label: "Contacts", editable: true, inputType: 'textarea', editOnly: true, hint: "JSON object with keys as user alias and values as user ID" },
                     { name: 'sensortype_id', label: "Type", editable: true, inputType: "select", opts: type_opts,
                         fromValue: function(type_id) { return (that.props.sensor_types[type_id] != null) ? that.props.sensor_types[type_id].name : "-"; } },
                     { name: 'group_ids', label: "Groups", editable: true, editOnly: true, inputType: "select", multiple: true, opts: group_opts },

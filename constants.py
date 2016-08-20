@@ -53,7 +53,7 @@ TEST_VERSIONS = ["test"]
 
 BILLING_DAYS_PER_MO = 30
 
-MAX_REQUEST_SECONDS = 40
+MAX_REQUEST_SECONDS = 40*3
 MAX_PLIMIT = 20
 
 PROJECT_ID = 195674861419 # Also GCM Sender ID
@@ -103,6 +103,8 @@ class REPORT():
     ALARM_REPORT = 2
     ANALYSIS_REPORT = 3
     APILOG_REPORT = 4
+    SENSOR_REPORT = 5
+    USER_REPORT = 6
 
     #status
     CREATED = 1
@@ -153,13 +155,14 @@ class COLUMN():
 
 
 class PROCESS():
-    # Statuses for SensorProcess()
+    # Statuses for SensorProcess() and SensorProcessTask()
     NEVER_RUN = 1
     OK = 2
     WARNING = 3
     ERROR = 4
+    CLEANED_UP = 5
 
-    STATUS_LABELS = { NEVER_RUN: "Never Run", OK: "OK", WARNING: "Warning", ERROR: "Error" }
+    STATUS_LABELS = { NEVER_RUN: "Never Run", OK: "OK", WARNING: "Warning", ERROR: "Error", CLEANED_UP: "Cleaned Up" }
 
 class RULE():
   # Trigger

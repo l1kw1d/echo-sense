@@ -96,6 +96,7 @@ export default class App extends React.Component {
             <nav>
               <div hidden={!is_admin}><Link to="/app/admin/manage"><IconButton iconClassName="material-icons" iconStyle={this.iSt} style={this.ibSt} tooltipPosition="bottom-right" tooltip="Admin Manage">settings</IconButton></Link></div>
               <div hidden={!is_account_admin}><Link to="/app/users" title="Users"><IconButton iconClassName="material-icons" iconStyle={this.iSt} style={this.ibSt} tooltipPosition="bottom-right" tooltip="Users">people</IconButton></Link></div>
+              <div ><Link to="/app/dashboard"><IconButton iconClassName="material-icons" iconStyle={this.iSt} style={this.ibSt} tooltipPosition="bottom-right" tooltip="Dashboard">dashboard</IconButton></Link></div>
               <div hidden={!can_write}><Link to="/app/manage" title="Manage"><IconButton iconClassName="material-icons" iconStyle={this.iSt} style={this.ibSt} tooltipPosition="bottom-right" tooltip="Manage">settings_applications</IconButton></Link></div>
               <div hidden={!can_write}><Link to="/app/logs" title="Logs"><IconButton iconClassName="material-icons" iconStyle={this.iSt} style={this.ibSt} tooltipPosition="bottom-right" tooltip="Logs">list</IconButton></Link></div>
               <div ><Link to="/app/sensors"><IconButton iconClassName="material-icons" iconStyle={this.iSt} style={this.ibSt} tooltipPosition="bottom-right" tooltip="Sensors">fiber_smart_record</IconButton></Link></div>

@@ -8,7 +8,9 @@ def bgRunSensorProcess(sptkey=None):
     logging.info("bgRunSensorProcess: %s" % sptkey)
     if sptkey:
         spt = SensorProcessTask.get(sptkey)
-        if spt:
+        if spt and spt.should_run():
             worker = SensorProcessWorker(spt)
             worker.run()
+        else:
+            logging.debug("Can't/shouldn't run task")
 

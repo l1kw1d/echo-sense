@@ -74,7 +74,7 @@ def role(role=None):
                     handler_method(self, *args, **kwargs)
                 else:
                     message = messages.ERROR.LABELS.get(error_code)
-                    logging.error(message)
+                    logging.warning(message)
                     self.json_out(success=False, error=error_code, message=message, status=status)
                 handled = True
             if not handled:

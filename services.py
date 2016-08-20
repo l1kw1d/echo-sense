@@ -5,7 +5,6 @@ import os
 from datetime import datetime,timedelta
 
 import tools
-# from oauth2client import client
 import authorized
 import logging
 from models import *

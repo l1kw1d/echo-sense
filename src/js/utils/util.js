@@ -609,77 +609,11 @@ var util = {
         return new Date(oldDate.getFullYear()+years,oldDate.getMonth()+months,oldDate.getDate()+days);
     },
 
-    updateBsProgress: function(el, options) {
-        console.log(options);
-        var pb = el.find('.progress-bar');
-        if (pb) {
-            var max = options.max || pb.attr('aria-valuemax');
-            var val = options.value || pb.attr('aria-valuenow');
-            var pct = val / max* 100;
-            if (options.value) pb.css('width', pct+'%').attr('aria-valuenow', options.value);
-            if (options.max) pb.attr('aria-valuemax', options.max);
-        }
-    },
-
-    animateCountTo: function(el, to, _duration) {
-        var ANIM_SPEED = 25; // Lower faster
-        var JITTER = .3;
-        var duration = _duration == null ? 750 : _duration;
-        var from = parseInt(el.text());
-        if (from == null || isNaN(from)) from = 0;
-        if (from != to) {
-            var valueNow = from;
-            var distance = to - valueNow;
-            var aveStep = distance / (duration / ANIM_SPEED);
-            var intid = window.setInterval(function() {
-                valueNow += parseInt((aveStep * ((1-JITTER) + (Math.random() * JITTER * 2))));
-                console.log(valueNow);
-                if ((aveStep > 0 && valueNow >= to) || (aveStep < 0 && valueNow <= to)) {
-                    valueNow = to;
-                    window.clearInterval(intid);
-                }
-                el.text(valueNow);
-            }, ANIM_SPEED);
-        } else {
-            el.text(to);
-        }
-    },
-
     simpleAjaxGet: function(url, target_id) {
         $.getJSON(url, {}, function(data) {
             var res = "<pre>"+JSON.stringify(data, undefined, 2)+"</pre>";
             $("#"+target_id).html(res).fadeIn();
         });
-    },
-
-    animateCountTo: function(el, to, _duration) {
-        var ANIM_SPEED = 25; // Lower faster
-        var MIN_STEP = 1;
-        var JITTER = .3;
-        var duration = _duration == null ? 750 : _duration;
-        var from = parseInt(el.text());
-        if (from == null || isNaN(from)) from = 0;
-        if (from != to) {
-            var valueNow = from;
-            var distance = to - valueNow;
-            var aveStep = distance / (duration / ANIM_SPEED);
-            var intid = window.setInterval(function() {
-                var step = parseInt((aveStep * ((1-JITTER) + (Math.random() * JITTER * 2))));
-                if (step < MIN_STEP) step = aveStep > 0 ? MIN_STEP : -1* MIN_STEP;
-                valueNow += step;
-                if ((aveStep > 0 && valueNow >= to) || (aveStep < 0 && valueNow <= to)) {
-                    valueNow = to;
-                    window.clearInterval(intid);
-                }
-                el.text(valueNow);
-            }, ANIM_SPEED);
-        } else {
-            el.text(to);
-        }
-    },
-
-    stdSN: function(raw) {
-        return util.stripSymbols(raw).toUpperCase().replace(' ','');
     },
 
     catchJSErrors: function() {
@@ -858,6 +792,25 @@ var util = {
         var id_prop = _id_prop || "id";
         var ids = collection.map(function(x) {return (x != null) ? x[id_prop] : null; });
         return ids.indexOf(id);
+    },
+
+    secsToDuration: function(secs) {
+        var labels = ["hour", "minute", "second"];
+        var d = moment.duration(secs, "seconds");
+        var hours = parseInt(d.asHours());
+        var mins = parseInt(d.minutes());
+        var secs = parseInt(d.seconds());
+        var s = [];
+        [hours, mins, secs].forEach(function(p, i) {
+            var label = labels[i];
+            if (p > 0) {
+                var piece = p + " " + label;
+                if (p > 1) piece += "s";
+                s.push(piece);
+            }
+        });
+        if (s.length > 0) return s.join(', ');
+        else return "0 seconds";
     }
 
 }

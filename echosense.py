@@ -77,6 +77,7 @@ app = webapp2.WSGIApplication(
       webapp2.Route('/api/rule/<skey>', handler=api.RuleAPI, handler_method="detail", methods=["GET"], name="RuleAPI"),
       webapp2.Route('/api/sensorprocesstask', handler=api.SensorProcessTaskAPI, handler_method="list", methods=["GET"], name="SensorProcessTaskAPI"),
       webapp2.Route('/api/sensorprocesstask/delete', handler=api.SensorProcessTaskAPI, handler_method="delete", methods=["POST"], name="SensorProcessTaskAPI"),
+      webapp2.Route('/api/sensorprocesstask/clean_up', handler=api.SensorProcessTaskAPI, handler_method="clean_up", methods=["POST"], name="SensorProcessTaskAPI"),
       webapp2.Route('/api/sensorprocesstask/<kn>', handler=api.SensorProcessTaskAPI, handler_method="detail", methods=["GET"], name="SensorProcessTaskAPI"),
       webapp2.Route('/api/processtask', handler=api.ProcessTaskAPI, handler_method="list", methods=["GET"], name="ProcessTaskAPI"),
       webapp2.Route('/api/processtask', handler=api.ProcessTaskAPI, handler_method="update", methods=["POST"], name="ProcessTaskAPI"),
@@ -126,6 +127,7 @@ app = webapp2.WSGIApplication(
       # Misc
       webapp2.Route('/res/<bk>', handler=views.ServeBlob, name="ServeBlob"),
       webapp2.Route('/_ah/warmup', handler=actions.WarmupHandler),
+      webapp2.Route('/_ah/start', handler=actions.StartInstance),
 
       # GCM
       webapp2.Route('/gcm/connect', gcmActions.GCMConnection),

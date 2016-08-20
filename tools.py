@@ -10,6 +10,8 @@ import json
 import geopy
 from decimal import Decimal
 from geopy.distance import VincentyDistance
+from google.appengine.api import app_identity
+import base64
 
 def GenPasswd(length=8, chars=string.letters.upper()):
     return ''.join([random.choice(chars) for i in range(length)])
@@ -112,9 +114,12 @@ def clone_entity(e, **extra_args):
 def str_to_tuple(s):
     return tuple(float(x) for x in s[1:-1].split(','))
 
-def unixtime(dt=None, ms=True):
+def unixtime(dt=None, ms=True, none_now=True):
     if not dt:
-        dt = datetime.now()
+        if none_now:
+            dt = datetime.now()
+        else:
+            return None
     unix = time.mktime(dt.timetuple())*1e3 + dt.microsecond/1e3
     if ms:
         return int(unix)
@@ -225,7 +230,7 @@ def lookupDict(model, itemlist, keyprop="key_string", valueTransform=None):
     if valueProp is None, value at each key is full item from list
     otherwise, run specified function to get value to store in dict
     """
-    if keyprop not in ['key_string', 'key_id']:
+    if keyprop not in ['key_string', 'key_id', 'key_name']:
         prop = model.properties().get(keyprop)
     else:
         prop = None
@@ -238,6 +243,8 @@ def lookupDict(model, itemlist, keyprop="key_string", valueTransform=None):
             keyval = str(item.key())
         elif keyprop == 'key_id':
             keyval = item.key().id()
+        elif keyprop == 'key_name':
+            keyval = item.key().name()
         elif prop:
             keyval = prop.get_value_for_datastore(item)
         if keyval:
@@ -850,6 +857,7 @@ def point_within_radius(x,y, center_lat, center_lon, radius_m=1000):
     dist = calcDistance(x, y, center_lat, center_lon)
     return dist <= radius_m
 
+
 def paging_params(request, limit_param="max", limit_default=30, page_default=0, limit_max=500):
     MAX_OFFSET = 7000
     max = request.get_range(limit_param, default=limit_default, max_value=limit_max)
@@ -861,3 +869,54 @@ def paging_params(request, limit_param="max", limit_default=30, page_default=0, 
         from handlers import APIError
         raise APIError("Maximum offset exceeded (%d)" % MAX_OFFSET)
     return (page, max, offset)
+
+
+def lookup_dict(li, prop):
+    lookup = {}
+    for item in li:
+        if not item:
+            continue
+        keyval = li.get(prop)
+        if keyval:
+            val = item
+            lookup[keyval] = item
+    return lookup
+
+def sign_gcs_url(gcs_filename, expires_after_seconds=6):
+    """ cloudstorage signed url to download cloudstorage object without login
+        Docs : https://cloud.google.com/storage/docs/access-control?hl=bg#Signed-URLs
+        API : https://cloud.google.com/storage/docs/reference-methods?hl=bg#getobject
+    """
+
+    GCS_API_ACCESS_ENDPOINT = 'https://storage.googleapis.com'
+    google_access_id = app_identity.get_service_account_name()
+    method = 'GET'
+    # TODO: decide whether to support content_md5 and content_type as params
+    content_md5, content_type = None, None
+
+    # expiration : number of seconds since epoch
+    expiration_dt = datetime.utcnow() + timedelta(
+        seconds=expires_after_seconds)
+    expiration = int(time.mktime(expiration_dt.timetuple()))
+
+    # Generate the string to sign.
+    signature_string = '\n'.join([
+        method,
+        content_md5 or '',
+        content_type or '',
+        str(expiration),
+        gcs_filename])
+
+    signature_bytes = app_identity.sign_blob(str(signature_string))[1]
+
+    # Set the right query parameters. we use a gae service account for the id
+    query_params = {'GoogleAccessId': google_access_id,
+                    'Expires': str(expiration),
+                    'Signature': base64.b64encode(signature_bytes)}
+
+    # Return the built URL.
+    result = '{endpoint}{resource}?{querystring}'.format(
+        endpoint=GCS_API_ACCESS_ENDPOINT,
+        resource=gcs_filename,
+        querystring=urllib.urlencode(query_params))
+    return str(result)

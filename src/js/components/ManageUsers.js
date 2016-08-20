@@ -5,7 +5,10 @@ var LoadStatus = require('components/LoadStatus');
 var AppConstants = require('constants/AppConstants');
 var SensorTypeActions = require('actions/SensorTypeActions');
 var SensorTypeStore = require('stores/SensorTypeStore');
+var GroupActions = require('actions/GroupActions');
+var GroupStore = require('stores/GroupStore');
 var util = require('utils/util');
+import { merge } from 'lodash';
 import connectToStores from 'alt/utils/connectToStores';
 var mui = require('material-ui'),
   FlatButton = mui.FlatButton,
@@ -22,11 +25,17 @@ export default class ManageUsers extends React.Component {
     }
 
     static getStores() {
-        return [SensorTypeStore];
+        return [SensorTypeStore, GroupStore];
     }
 
     static getPropsFromStores() {
-        return SensorTypeStore.getState();
+        var st = SensorTypeStore.getState();
+        merge(st, GroupStore.getState());
+        return st;
+    }
+
+    componentDidMount() {
+        GroupActions.fetchGroups();
     }
 
     gotoTab(tab) {
@@ -41,6 +50,10 @@ export default class ManageUsers extends React.Component {
             {id: 'users', label: "Users"},
         ];
         if (tab == "users") {
+            var group_opts = util.flattenDict(this.props.groups).map(function(group, i, arr) {
+                return { val: group.id, lab: group.name };
+            });
+
             var level_opts = AppConstants.USER_LABELS.map(function(label, i) {
                 return { lab: label, val: i + 1};
             })
@@ -56,11 +69,7 @@ export default class ManageUsers extends React.Component {
                     { name: 'currency', label: "Currency (e.g. USD)", editable: true },
                     { name: 'level', label: "Level", editable: true, editOnly: true, inputType: "select", opts: level_opts },
                     { name: 'password', label: "Password", editable: true, editOnly: true },
-                    { name: 'group_ids', label: "Groups", editable: true, editOnly: true,
-                        formFromValue: function(value) {
-                          return value.join(',');
-                        }
-                    },
+                    { name: 'group_ids', label: "Groups", editable: true, editOnly: true, inputType: "select", multiple: true, opts: group_opts },
                     { name: 'alert_channel', label: "Alert Channel", editable: true, editOnly: true, inputType: "select", defaultValue: 0, opts: [
                        { lab: "Disabled", val: 0 },
                        { lab: "Email", val: 1 },
@@ -69,7 +78,7 @@ export default class ManageUsers extends React.Component {
                     ] },
                     { name: 'custom_attrs', label: "Custom Attributes", editable: true, editOnly: true, inputType: "textarea" }
                 ],
-                'add_params': {},
+                'add_params': {'order_by': 'dt_created'},
                 'unique_key': 'id',
                 'max': 50,
                 getListFromJSON: function(data) { return data.data.users; },

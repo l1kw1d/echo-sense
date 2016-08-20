@@ -172,11 +172,7 @@ export default class SensorDetail extends React.Component {
         var data = {
           'sptkey': spt.key
         }
-        $.post("/api/processtask/run", data, function(res) {
-          if (res.success) {
-            toastr.info("Running...");
-          }
-        }, 'json');
+        api.post("/api/processtask/run", data);
       } else {
 
       }
@@ -266,10 +262,12 @@ export default class SensorDetail extends React.Component {
         var detail = "Last run: " + util.printDate(p.ts_last_run);
         if (p.narrative_last_run) detail += " Narrative: " + p.narrative_last_run;
         var status_icon = <i className={AppConstants.PROCESS_STATUS_ICONS[p.status_last_run]}/>
+        var running_icon;
+        if (p.running) running_icon = <i className="fa fa-refresh fa-spin" style={{color: 'green'}} />
         return (
         <li className="list-group-item" key={"p"+i}>
           <Link to={`/app/sensors/${s.kn}/processtask/${p.kn}`} className="title" title={detail}>{ p.process_task_label }</Link>
-          <span className="sub">{ status_icon } { AppConstants.PROCESS_STATUS_LABELS[p.status_last_run] }</span>
+          <span className="sub">{ running_icon } { status_icon } { AppConstants.PROCESS_STATUS_LABELS[p.status_last_run] }</span>
           <a href="javascript:void(0)" className="right" hidden={!can_write} onClick={this.runProcesser.bind(this, p)}><i className="fa fa-play"/></a>
           <a href="javascript:void(0)" className="right red" hidden={!can_write} onClick={this.deleteProcesser.bind(this, p)} style={{marginRight: "5px"}}><i className="fa fa-trash"/></a>
         </li>
@@ -348,6 +346,7 @@ export default class SensorDetail extends React.Component {
           <DialogChooser prompt="Choose a processer to associate with this sensor" url="/api/processtask" listProp="processtasks" ref="chooser" onItemChosen={this.associateProcesser.bind(this)} open={this.state.dialogs.chooser_open} onRequestClose={this.hide_show_dialog.bind(this, 'chooser_open', false)} />
 
           <DialogChooser prompt="Choose which alarm type to delete" url="/api/rule" listProp="rules" labelProp="name" onItemChosen={this.delete_alarms.bind(this)} open={this.state.dialogs.rule_chooser_open} onRequestClose={this.hide_show_dialog.bind(this, 'rule_chooser_open', false)} />
+
         </div>
       );
     }
