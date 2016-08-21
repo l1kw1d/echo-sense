@@ -182,6 +182,10 @@ class UtilTestCase(BaseTestCase):
         print prefix1_runs
         print prefix2_runs
 
+    def testThrottling(self):
+        for i in range(5):
+            expected = i == 0  # Not throttled first time only
+            self.assertEqual(expected, tools.not_throttled("test_key"))
 
     def tearDown(self):
         pass
