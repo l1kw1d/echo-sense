@@ -338,7 +338,9 @@ class SensorProcessWorker(object):
             while True:
                 batch = self.fetchBatch()
                 if batch:
+                    logging.debug("Started processing a batch of %d" % len(batch))
                     self.runBatch(batch)
+                    logging.debug("Finshed processing a batch of %d" % len(batch))
                     self.checkDeadline()
                 else:
                     self.finish()

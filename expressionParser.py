@@ -1,4 +1,5 @@
 from google.appengine.ext import db
+from google.appengine.api import memcache
 from datetime import datetime
 from lib.pyparsing import Word, Keyword, alphas, ParseException, Literal, CaselessLiteral \
 , Combine, Optional, nums, Or, Forward, ZeroOrMore, StringEnd, alphanums, oneOf \
@@ -334,10 +335,13 @@ class ExpressionParser(object):
 
     def _parse_it(self):
         if self.expr:
-            logging.debug("Parsing: %s" % self.expr)
             # try parsing the input string
             try:
+                logging.debug("Parsing: %s" % self.expr)
+                memcache.set("1", 1)
                 L = self.pattern.parseString(self.expr)
+                memcache.delete("1")
+                logging.debug("Parsed: %s" % L)
             except ParseException, err:
                 L = ['Parse Failure', self.expr]
                 if self.verbose:
