@@ -4,7 +4,7 @@ from datetime import datetime
 from lib.pyparsing import Word, Keyword, alphas, ParseException, Literal, CaselessLiteral \
 , Combine, Optional, nums, Or, Forward, ZeroOrMore, StringEnd, alphanums, oneOf \
 , QuotedString, quotedString, removeQuotes, delimitedList, nestedExpr, Suppress, Group, Regex, operatorPrecedence \
-, opAssoc
+, opAssoc, ParserElement
 import math
 import sys
 import tools
@@ -139,7 +139,7 @@ class ExpressionParser(object):
         return val1
 
     def __evalComparisonOp(self, tokens):
-        logging.debug("Started __evalComparisonOp: %s" % toks)
+        logging.debug("Started __evalComparisonOp: %s" % tokens)
         args = tokens[0]
         val1 = args[0]
         for op,val in self.operatorOperands(args[1:]):
@@ -355,6 +355,7 @@ class ExpressionParser(object):
             try:
                 logging.debug("Parsing: %s" % self.expr)
                 memcache.set("1", 1)
+                ParserElement.enablePackrat()
                 L = self.pattern.parseString(self.expr)
                 memcache.delete("1")
                 logging.debug("Parsed: %s" % L)
