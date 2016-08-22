@@ -10,6 +10,7 @@ import sys
 import tools
 from constants import *
 import logging
+import traceback
 
 class ExpressionParser(object):
     opMap = {
@@ -59,6 +60,7 @@ class ExpressionParser(object):
 
     # Generator to extract operators and operands in pairs
     def operatorOperands(self, tokenlist):
+        logging.debug("Started operatorOperands: %s" % tokenlist)
         it = iter(tokenlist)
         while 1:
             try:
@@ -67,6 +69,7 @@ class ExpressionParser(object):
                 break
 
     def __normalizeNumeric(self, value):
+        logging.debug("Started __normalizeNumeric: %s" % value)
         if not tools.is_numeric(value):
             # Handle unexpected text addition
             value = 0
@@ -74,9 +77,11 @@ class ExpressionParser(object):
 
 
     def __evalCurrentValue(self, toks):
+        logging.debug("Started __evalCurrentValue: %s" % toks)
         return self.analysis.columnValue(self.column, 0)
 
     def __evalAggregateColumn(self, toks):
+        logging.debug("Started __evalAggregateColumn: %s" % toks)
         column = toks[0]
         if not self.record_list:
             raise Exception("Can't evaluate aggregate column without record list")
@@ -87,6 +92,7 @@ class ExpressionParser(object):
         return [res]
 
     def __evalSingleColumn(self, toks):
+        logging.debug("Started __evalSingleColumn: %s" % toks)
         column = toks[0]
         if not self.record:
             raise Exception("Can't evaluate single column with no record")
@@ -94,6 +100,7 @@ class ExpressionParser(object):
         return val
 
     def __multOp(self, toks):
+        logging.debug("Started __multOp: %s" % toks)
         value = toks[0]
         _prod = self.__normalizeNumeric(value[0])
         for op,val in self.operatorOperands(value[1:]):
@@ -103,6 +110,7 @@ class ExpressionParser(object):
         return _prod
 
     def __expOp(self, toks):
+        logging.debug("Started __expOp: %s" % toks)
         value = toks[0]
         res = self.__normalizeNumeric(value[0])
         for op,val in self.operatorOperands(value[1:]):
@@ -110,6 +118,7 @@ class ExpressionParser(object):
         return res
 
     def __addOp(self, toks):
+        logging.debug("Started __addOp: %s" % toks)
         value = toks[0]
         _sum = self.__normalizeNumeric(value[0])
         for op,val in self.operatorOperands(value[1:]):
@@ -118,6 +127,7 @@ class ExpressionParser(object):
         return _sum
 
     def __evalLogicOp(self, toks):
+        logging.debug("Started __evalLogicOp: %s" % toks)
         args = toks[0]
         if self.verbose:
             logging.debug(args)
@@ -129,6 +139,7 @@ class ExpressionParser(object):
         return val1
 
     def __evalComparisonOp(self, tokens):
+        logging.debug("Started __evalComparisonOp: %s" % toks)
         args = tokens[0]
         val1 = args[0]
         for op,val in self.operatorOperands(args[1:]):
@@ -142,13 +153,16 @@ class ExpressionParser(object):
         return False
 
     def __evalString(self, toks):
+        logging.debug("Started __evalString: %s" % toks)
         val = toks[0]
         return str(val).upper().strip()
 
     def __evalConstant(self, toks):
+        logging.debug("Started __evalConstant: %s" % toks)
         return float(toks[0])
 
     def __getArglist(self, args):
+        logging.debug("Started __getArglist: %s" % args)
         if type(args) is list:
             first = args[0]
             if type(first) is list:
@@ -157,6 +171,7 @@ class ExpressionParser(object):
         return []
 
     def __evalFunction(self, toks):
+        logging.debug("Started __evalFunction: %s" % toks)
         val = toks[0]
         fnName = val[0].upper()
         args = val[1:]
@@ -277,8 +292,8 @@ class ExpressionParser(object):
                 return [None]
         return 0
 
-
     def _getPattern(self):
+        logging.debug("Started _getPattern")
         arith_expr = Forward()
         comp_expr = Forward()
         logic_expr = Forward()
@@ -334,6 +349,7 @@ class ExpressionParser(object):
         return pattern
 
     def _parse_it(self):
+        logging.debug("Started _parse_it")
         if self.expr:
             # try parsing the input string
             try:
@@ -352,6 +368,7 @@ class ExpressionParser(object):
             except:
                 e = sys.exc_info()[0]
                 logging.error("Other error occurred in parse_it for < %s >: %s" % (self.expr, e))
+                traceback.print_exc()
             else:
                 if self.verbose:
                     logging.debug("%s -> %s" % (self.expr, L[0]))
@@ -359,6 +376,7 @@ class ExpressionParser(object):
         return None
 
     def run(self, record=None, record_list=None, alarm_list=None):
+        logging.debug("Started run")
         self.record_list = record_list
         self.alarm_list = alarm_list
         self.record = record
