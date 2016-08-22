@@ -1,4 +1,3 @@
-import traceback
 import tools
 from constants import *
 from models import *
@@ -168,7 +167,6 @@ class SensorProcessWorker(object):
 
         '''
         # Standard processing (alarms)
-        logging.debug("---------Standard processing (alarms)-----------")
         self.new_alarms = []
         for record in records:
             new_alarm = self.processRecord(record)
@@ -176,7 +174,6 @@ class SensorProcessWorker(object):
                 self.new_alarms.append(new_alarm)
 
         # Analysis processing
-        logging.debug("---------Analysis processing-------------------")
         if self.processers:
             for processer in self.processers:
                 run_ms = tools.unixtime(records[-1].dt_recorded) if records else 0
@@ -338,9 +335,7 @@ class SensorProcessWorker(object):
             while True:
                 batch = self.fetchBatch()
                 if batch:
-                    logging.debug("Started processing a batch of %d" % len(batch))
                     self.runBatch(batch)
-                    logging.debug("Finshed processing a batch of %d" % len(batch))
                     self.checkDeadline()
                 else:
                     self.finish()
@@ -355,5 +350,4 @@ class SensorProcessWorker(object):
             self.finish(result=PROCESS.ERROR, narrative="Instance shutdown")
         except Exception, e:
             logging.error("Uncaught error: %s" % e)
-            traceback.print_exc()
             self.finish(result=PROCESS.ERROR, narrative="Processing Error: %s" % e)
