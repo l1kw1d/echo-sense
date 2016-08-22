@@ -12,6 +12,8 @@ from constants import *
 import logging
 import traceback
 
+ParserElement.enablePackrat()
+
 class ExpressionParser(object):
     opMap = {
         "<" : lambda a,b : a < b,
@@ -355,7 +357,6 @@ class ExpressionParser(object):
             try:
                 logging.debug("Parsing: %s" % self.expr)
                 memcache.set("1", 1)
-                ParserElement.enablePackrat()
                 L = self.pattern.parseString(self.expr)
                 memcache.delete("1")
                 logging.debug("Parsed: %s" % L)
