@@ -26,7 +26,7 @@ export default class Dashboard extends React.Component {
   }
 
   clean_up(p) {
-    bootbox.confirm('Cleaning up will mark this process task as not running. Do this only when sure that the task has completed', function(result){
+    bootbox.confirm('Cleaning up will mark this process task as not running. Do this only when sure that the task has completed', (result) => {
       if (result) {
         var sptkey = p.key;
         api.post("/api/sensorprocesstask/clean_up", {sptkey: sptkey}, (res) => {
