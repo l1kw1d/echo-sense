@@ -39,7 +39,7 @@ class ExpressionParser(object):
         "DELTA"
     ]
 
-    def __init__(self, expr, column=None, analysis=None, run_ms=0, verbose=False):
+    def __init__(self, expr, column=None, analysis=None, run_ms=0, verbose=True):
         self.verbose = verbose
         if self.verbose:
             logging.debug("Building expression parser for %s" % expr)
@@ -334,7 +334,7 @@ class ExpressionParser(object):
 
     def _parse_it(self):
         if self.expr:
-            # logging.debug("Parsing: %s" % self.expr)
+            logging.debug("Parsing: %s" % self.expr)
             # try parsing the input string
             try:
                 L = self.pattern.parseString(self.expr)
