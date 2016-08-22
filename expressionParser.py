@@ -43,7 +43,7 @@ class ExpressionParser(object):
         "DELTA"
     ]
 
-    def __init__(self, expr, column=None, analysis=None, run_ms=0, verbose=True, pattern=None):
+    def __init__(self, expr, column=None, analysis=None, run_ms=0, verbose=True):
         self.verbose = verbose
         if self.verbose:
             logging.debug("Building expression parser for %s" % expr)
@@ -56,7 +56,7 @@ class ExpressionParser(object):
         self.record = None
         # TODO: Pass prior record for accurate calcuations such as distance
         # self.prior_batch_last_record = prior_batch_last_record
-        self.pattern = pattern if pattern else self._getPattern()
+        self.pattern = self._getPattern()
         logging.debug("Initialized expression parser with expression: %s" % expr)
 
 
