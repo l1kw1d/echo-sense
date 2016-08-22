@@ -41,6 +41,7 @@ class SensorProcessWorker(object):
         self.sensorprocess.put()
         self.records_processed = 0
         self.continuations = 0
+        self.pattern = None
 
 
     def __str__(self):
@@ -280,7 +281,9 @@ class SensorProcessWorker(object):
             expr = processer.get('expr', processer.get('calculation', None))
             if expr and col:
                 # TODO: Slow?
-                ep = ExpressionParser(expr, col, analysis=a, run_ms=run_ms)
+                ep = ExpressionParser(expr, col, analysis=a, run_ms=run_ms, pattern=self.pattern)
+                if not self.pattern:
+                    self.pattern = ep.pattern
                 res = ep.run(record_list=records, alarm_list=self.new_alarms)
                 a.setColumnValue(col, res)
 
