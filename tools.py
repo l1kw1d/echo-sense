@@ -2,7 +2,7 @@ import os, time, sys, random, urllib, string, logging, math, re, uuid
 from datetime import datetime, timedelta, date
 from datetime import time as _time
 from google.appengine.ext import db, deferred
-from google.appengine.api import mail, taskqueue, images, urlfetch
+from google.appengine.api import mail, taskqueue, images, urlfetch, memcache
 import cgi
 import hashlib
 import pytz
@@ -920,3 +920,12 @@ def sign_gcs_url(gcs_filename, expires_after_seconds=6):
         resource=gcs_filename,
         querystring=urllib.urlencode(query_params))
     return str(result)
+
+
+def not_throttled(key_suffix):
+    exception_expiration = 3600 # 1 hr
+    mckey = "throttle_" + key_suffix
+    throttled = memcache.get(mckey)
+    if not throttled:
+        memcache.add(mckey, 1, exception_expiration)
+    return not throttled
