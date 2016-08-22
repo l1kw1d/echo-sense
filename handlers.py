@@ -94,9 +94,12 @@ class BaseRequestHandler(webapp2.RequestHandler):
                     memcache.add(throttle_name, 1, exception_expiration)
                     subject = '[%s] exception for %s [%s: %s]' % (sitename, ename, exception_name, exception_details)
                     body = exception_traceback + "\n\n" + self.request.uri
-                    mail.send_mail(to=ERROR_EMAIL, sender=mail_admin,
-                                   subject=subject,
-                                   body=body)
+                    try:
+                        mail.send_mail(to=ERROR_EMAIL, sender=mail_admin,
+                                       subject=subject,
+                                       body=body)
+                    except Exception, e:
+                        logging.warning("Failed to send email - %s" % e)
         return exception_name, exception_details, exception_traceback
 
     def handle_exception(self, exception, debug_mode):
