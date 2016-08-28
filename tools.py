@@ -758,6 +758,12 @@ def in_same_period(ms1, ms2, period_type=4):
         ms2_mo_begin = get_first_day(dt_from_ts(ms2))
         return ms1_mo_begin == ms2_mo_begin
 
+
+def int_hash(value):
+    '''returns the last 8 digits of sha1 hash of the string'''
+    return int(hashlib.sha1(str(value)).hexdigest(), 16) % (10 ** 8)
+
+
 def batched_runtime_with_jitter(now, interval_mins=5, name_prefix=None, max_jitter_pct=0.0):
     runAt = now - timedelta(
             minutes=(now.minute % interval_mins) - interval_mins,
@@ -765,8 +771,7 @@ def batched_runtime_with_jitter(now, interval_mins=5, name_prefix=None, max_jitt
             microseconds=now.microsecond
     )
     if max_jitter_pct:
-        r = random.Random()
-        r.seed(name_prefix)
+        r = random.Random(int_hash(name_prefix))
         jitter_secs = interval_mins * 60 * max_jitter_pct * r.random() # always same for same name_prefix
         runAt += timedelta(seconds=jitter_secs)
 
