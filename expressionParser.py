@@ -3,12 +3,15 @@ from datetime import datetime
 from lib.pyparsing import Word, Keyword, alphas, ParseException, Literal, CaselessLiteral \
 , Combine, Optional, nums, Or, Forward, ZeroOrMore, StringEnd, alphanums, oneOf \
 , QuotedString, quotedString, removeQuotes, delimitedList, nestedExpr, Suppress, Group, Regex, operatorPrecedence \
-, opAssoc
+, opAssoc, ParserElement
 import math
 import sys
 import tools
 from constants import *
 import logging
+
+ParserElement.enablePackrat()
+
 
 class ExpressionParser(object):
     opMap = {

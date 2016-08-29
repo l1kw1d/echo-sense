@@ -1,7 +1,7 @@
 var alt = require('config/alt');
 import api from 'utils/api';
 import {clone} from 'lodash';
-var $ = require('jQuery');
+var $ = require('jquery');
 import {post} from 'utils/action-utils';
 
 class UserActions {
