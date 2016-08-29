@@ -312,6 +312,8 @@ class SensorDataReportWorker(GCSReportWorker):
             self.FILTERS.append(("dt_recorded <", tools.dt_from_ts(end)))
         self.report.generate_title("Sensor Data Report", ts_start=start, ts_end=end, **title_kwargs)
         self.columns = specs.get('columns', [])
+        if isinstance(self.columns, basestring) and ',' in self.columns:
+            self.columns = self.columns.split(',')
         standard_cols = ["Record ID", "Sensor ID", "Date"]
         self.headers = standard_cols + self.columns
         self.batch_size = 1000
