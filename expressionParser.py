@@ -6,6 +6,7 @@ from lib.pyparsing import Word, Keyword, alphas, ParseException, Literal, Casele
 , opAssoc, ParserElement
 import math
 import sys
+import traceback
 import tools
 from constants import *
 import logging
@@ -58,7 +59,6 @@ class ExpressionParser(object):
         self.pattern = self._getPattern()
         logging.debug("Initialized expression parser with expression: %s" % expr)
 
-
     # Generator to extract operators and operands in pairs
     def operatorOperands(self, tokenlist):
         it = iter(tokenlist)
@@ -73,7 +73,6 @@ class ExpressionParser(object):
             # Handle unexpected text addition
             value = 0
         return value
-
 
     def __evalCurrentValue(self, toks):
         return self.analysis.columnValue(self.column, 0)
@@ -350,7 +349,8 @@ class ExpressionParser(object):
                     logging.error(err)
             except:
                 e = sys.exc_info()[0]
-                logging.error("Other error occurred in parse_it for < %s >: %s" % (self.expr, e))
+                detail = traceback.format_exc()
+                logging.error("Other error occurred in parse_it for < %s >: %s - %s" % (self.expr, e, detail))
             else:
                 if self.verbose:
                     logging.debug("%s -> %s" % (self.expr, L[0]))
