@@ -23,10 +23,8 @@ Contents:
    inbox
    messages
    models
-   oauth2client
    outbox
    reports
-   runtests
    services
    tasks
    tools
