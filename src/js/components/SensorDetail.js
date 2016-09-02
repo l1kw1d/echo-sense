@@ -327,7 +327,7 @@ export default class SensorDetail extends React.Component {
 
           <div className="row">
             <div className="col-sm-6">
-              <h3>Alarms</h3>
+              <h3>Alarms (<Link to={`/app/sensors/${s.kn}/alarms`}>history</Link>)</h3>
               <ul className="list-group">
                 { _alarms }
               </ul>

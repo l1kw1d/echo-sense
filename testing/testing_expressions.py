@@ -62,6 +62,8 @@ class UtilTestCase(BaseTestCase):
             ["1==1 OR 1==1 AND 1==0", True], # And first
             ["1==1 OR (1==1 AND 1==0)", True],
             ["1 == 2 OR [x] > 100 OR [x] > 1", True],
+            ["\"ONE\" == \"ONE\"", True],
+            ["\"ONE / (1)\" == \"ONE / (1)\"", True],
             ["1==2 OR 1==1 OR 1==4 OR 1==5", True],
             ["SINCE(1467011405000)", now_ms - 1467011405000],
             ["SQRT([x]^2 + [y]^2)", ( math.sqrt(pow(x,2)+pow(y,2)) )],
