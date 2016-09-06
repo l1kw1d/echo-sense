@@ -16,6 +16,7 @@ var Reports = require('components/Reports');
 var Dashboard = require('components/Dashboard');
 var SensorDetail = require('components/SensorDetail');
 var AlarmDetail = require('components/AlarmDetail');
+var AlarmViewer = require('components/AlarmViewer');
 var SensorProcessTaskDetail = require('components/SensorProcessTaskDetail');
 var RecordDetail = require('components/RecordDetail');
 var AnalysisDetail = require('components/AnalysisDetail');
@@ -64,6 +65,7 @@ module.exports = (
       </Route>
       <Route path="reports" component={Reports} />
       <Route path="alarms/:sensorKn/:aid" component={AlarmDetail} />
+      <Route path="sensors/:sensorKn/alarms" component={AlarmViewer} />
       <Route path="processing" component={Analyze}>
         <Route path="viewer" component={AnalysisViewer} />
         <Route path="settings" component={AnalysisSettings}>

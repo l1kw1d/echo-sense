@@ -15,7 +15,8 @@ before_install:
   fi
 install:
 # Install the Python dependencies
-- pip install -r requirements.txt
+- pip install -t lib -r requirements.txt
+- pip install -r local.requirements.txt
 script:
 # Run the unit tests & end to end tests
 - python ./runtests.py ${GAE_PYTHONPATH} testing/ all

@@ -1793,7 +1793,7 @@ class Alarm(db.Model):
         return len(to_delete)
 
     @staticmethod
-    def Fetch(sensor=None, enterprise=None, rule=None, limit=50, offset=0):
+    def Fetch(sensor=None, enterprise=None, rule=None, dt_start=None, dt_end=None, limit=50, offset=0):
         if sensor:
             q = sensor.alarm_set.order("-dt_start")
         elif enterprise:
@@ -1802,6 +1802,10 @@ class Alarm(db.Model):
             return []
         if rule:
             q.filter("rule =", rule)
+        if dt_start:
+            q.filter("dt_start >=", dt_start)
+        if dt_end:
+            q.filter("dt_start <=", dt_end)
         return q.fetch(limit=limit, offset=offset)
 
     def deactivate(self):

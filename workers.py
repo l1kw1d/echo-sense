@@ -299,6 +299,7 @@ class SensorProcessWorker(object):
                 ar = self.active_rules[i]
                 if ar:
                     ar.deactivate()
+                    self.updated_alarm_dict[str(ar.key())] = ar
                     self.active_rules[i] = None
 
         self.last_record = record
