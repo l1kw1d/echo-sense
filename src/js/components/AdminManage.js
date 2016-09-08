@@ -88,7 +88,8 @@ export default class AdminManage extends React.Component {
 
                 <div className="pull-right">
                     <IconMenu iconButtonElement={<IconButton><FontIcon className="material-icons">more_vert</FontIcon> /></IconButton>}>
-                        <MenuItem primaryText="Spoof" onClick={this.goto.bind(this, '/app/admin/spoof')} leftIcon={<FontIcon className="material-icons">redo</FontIcon>} />
+                        <MenuItem primaryText="Spoof Data" onClick={this.goto.bind(this, '/app/admin/spoof/data')} leftIcon={<FontIcon className="material-icons">redo</FontIcon>} />
+                        <MenuItem primaryText="Spoof Payment" onClick={this.goto.bind(this, '/app/admin/spoof/payment')} leftIcon={<FontIcon className="material-icons">attach_money</FontIcon>} />
                     </IconMenu>
                 </div>
 

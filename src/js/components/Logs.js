@@ -9,7 +9,7 @@ var GroupedSelector = require('components/shared/GroupedSelector');
 var mui = require('material-ui'),
   DropDownMenu = mui.DropDownMenu,
   MenuItem = mui.MenuItem;
-
+import api from 'utils/api';
 var Link = Router.Link;
 
 export default class Logs extends React.Component {
@@ -65,16 +65,40 @@ export default class Logs extends React.Component {
       );
   }
 
+  resend_payment(pmnt) {
+    var params = {
+      pkey: pmnt.key
+    };
+    api.post("/api/payment", params, (res) => {
+      if (res.payment) {
+        this.refs.fl_payments.update_item_by_key(res.payment, 'key');
+      }
+    });
+  }
+
   renderPayment(pmnt) {
+    var _action, _detail;
     var title = pmnt.amount + " " + pmnt.currency
     var status_text = util.findItemById(AppConstants.PAYMENT_STATUSES, pmnt.status, 'value').label;
     var user_text = pmnt.user ? (pmnt.user.name || pmnt.user.phone) : "--";
+    var label_style = "default";
+    if (status_text == "Requested") label_style = "warning";
+    if (status_text == "Sent") label_style = "success";
+    if (status_text == "Failed") {
+      label_style = "danger";
+      _detail = <span className="sub" style={{color: "red"}}>{ pmnt.last_gateway_response }</span>
+    }
+    if (pmnt.can_send) _action = (
+      <a href="javascript:void(0)" className="right" title="Send / Retry" onClick={this.resend_payment.bind(this, pmnt)}><i className="fa fa-send" /></a>
+      )
     return (
       <li className="list-group-item" key={pmnt.id}>
         <span className="title">{ title }</span>
-        <span className="label label-default">{ status_text }</span>
+        <span className={"label label-" + label_style} title={pmnt.last_gateway_response}>{ status_text }</span>
+        { _detail }
         <span className="sub right">{ user_text }</span>
         <span data-ts={pmnt.ts_created}></span>
+        { _action }
       </li>
       );
   }
@@ -130,7 +154,7 @@ export default class Logs extends React.Component {
       </div>
     );
     } else if (sec == "apilogs") content = <FetchedList key="apilog" url="/api/apilog" ref="fl_logs" listProp="logs" renderItem={this.renderAPILog.bind(this)} autofetch={true} />
-    else if (sec == "payments") content = <FetchedList key="payment" url="/api/payment" params={{with_user: 1}} listProp="payments" renderItem={this.renderPayment.bind(this)} autofetch={true} />
+    else if (sec == "payments") content = <FetchedList key="payment" url="/api/payment" ref="fl_payments" params={{with_user: 1}} listProp="payments" renderItem={this.renderPayment.bind(this)} autofetch={true} />
     else if (sec == "analyses") content = <FetchedList key="analysis" url="/api/analysis" params={{with_props: 1}} listProp="analyses" renderItem={this.renderAnalysis.bind(this)} autofetch={true} />
     return (
         <div>

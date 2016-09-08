@@ -1175,6 +1175,39 @@ class PaymentAPI(handlers.JsonRequestHandler):
             }
         self.json_out(data, success=success, message=message)
 
+    @authorized.role('api')
+    def send(self, d):
+        """
+        Request, resend, or spoof payment
+        """
+        spoof = self.request.get_range('spoof') == 1
+        pkey = self.request.get('pkey')
+        success = False
+        message = None
+        user = None
+        pmnt = None
+        params = tools.gets(self, integers=['user_id', 'amount'])
+        if pkey:
+            # Resend existing
+            pmnt = Payment.get(pkey)
+            success = pmnt.send()
+            message = "Payment resend requested" if success else "Failed to re-send payment"
+        else:
+            # Request or spoof?
+            if 'user_id' in params:
+                user = User.get_by_id(long(params['user_id']))
+            if user:
+                pmnt = Payment.Request(self.enterprise, user, params.get('amount', 0), send=False)
+                if pmnt:
+                    success = True
+                    message = "Spoof payment requested"
+            else:
+                message = "User not found"
+        data = {
+            'payment': pmnt.json() if pmnt else None
+            }
+        self.json_out(data, message=message, success=success, debug=True)
+
 
 def SaveUploadsToEntity(entity, uploads, put=False):
     # TODO: Move to GCS?

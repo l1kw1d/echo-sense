@@ -1485,25 +1485,30 @@ class Payment(UserAccessible):
     def json(self, with_user=False):
         res = {
             'id': self.key().id(),
+            'key': str(self.key()),
             'ts_created': tools.unixtime(self.dt_created),
             'amount': str(self.amount),
             'currency': self.currency,
             'status': self.status,
-            'channel': self.channel
+            'channel': self.channel,
+            'gateway_id': self.gateway_id,
+            'can_send': self.can_send(),
+            'last_gateway_response': self.last_gateway_response
         }
         if with_user and self.user:
             res['user'] = self.user.json()
         return res
 
     @staticmethod
-    def Request(ent, user, amount, channel=PAYMENT.AIRTIME):
+    def Request(ent, user, amount, channel=PAYMENT.AIRTIME, send=True):
         currency = user.currency
         pmnt = None
         if currency:
             if ent and user and amount:
                 pmnt = Payment(parent=ent, enterprise=ent, user=user, amount=amount, currency=currency, channel=channel)
                 pmnt.put()
-                pmnt.send()
+                if send:
+                    pmnt.send()
         else:
             logging.error("No currency for user")
         return pmnt
@@ -1525,7 +1530,9 @@ class Payment(UserAccessible):
                     success, self.last_gateway_response, self.gateway_id = outbox.send_airtime(self.enterprise, self.user.phone, self.amount, self.currency)
                     if success:
                         self.confirm_sent()
-                        self.put() # Note, duplicate put
+                    else:
+                        self.failed()
+                    self.put() # Note, duplicate put
                 else:
                     logging.error("Can't send to user, no phone")
         return success
@@ -1533,8 +1540,11 @@ class Payment(UserAccessible):
     def confirm_sent(self):
         self.status = PAYMENT.SENT
 
+    def failed(self):
+        self.status = PAYMENT.FAILED
+
     def can_send(self):
-        return self.status == PAYMENT.REQUESTED
+        return self.status in [PAYMENT.FAILED, PAYMENT.REQUESTED]
 
     def print_direction(self):
         return PAYMENT.DIRECTION_LABELS.get(self.direction)

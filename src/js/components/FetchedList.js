@@ -98,6 +98,38 @@ export default class FetchedList extends React.Component {
     this.setState({items: items});
   }
 
+  update_item_by_key(item, _keyProp, _delete, _add_to) {
+    var add_to = _add_to || "top";
+    var do_delete = _delete || false;
+    var keyProp = _keyProp || "key";
+    // TODO: Add lookup dict?
+    var success = false;
+    var items = this.state.items;
+    for (var i=0; i<items.length; i++) {
+      var _item = items[i];
+      if (_item) {
+        var keyval = _item[keyProp];
+        if (keyval == item[keyProp]) {
+          // Match
+          if (do_delete) items.splice(i, 1);
+          else items[i] = item;
+          success = true;
+          break;
+        }
+      }
+    }
+    if (success) {
+      this.setState({items: items})
+    } else {
+      if (!do_delete) {
+        var new_items = this.state.items;
+        if (add_to == "top") new_items.unshift(item);
+        else if (add_to == "bottom") new_items.push(item);
+        this.setState({items: new_items});
+      }
+    }
+  }
+
   render() {
     var _items = this.state.items.map(function(item, i, arr) {
       if (this.props.renderItem != null) return this.props.renderItem(item);
