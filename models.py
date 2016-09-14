@@ -1044,7 +1044,7 @@ class Rule(db.Model):
                 polygon = tools.polygon_from_geojson(geo_json)
                 gp = tools.safe_geopoint(val)
                 if gp:
-                    inside = tools.point_inside_polygon(gp.lat, gp.lon, polygon)
+                    inside = tools.point_inside_polygon(gp.lon, gp.lat, polygon)
                     passed = inside == (self.trigger == RULE.GEOFENCE_IN)
         elif self.trigger in [RULE.GEORADIUS_OUT, RULE.GEORADIUS_IN]:
             geo_value = tools.getJson(self.value_complex)

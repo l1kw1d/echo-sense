@@ -825,8 +825,8 @@ def point_inside_polygon(x,y,poly):
     '''Determine whether a point is within a polygon.
 
     Args:
-        x, y: coordinates
-        poly: list of (lat, lng) tuples
+        x, y: coordinates (lng, lat)
+        poly: list of (lng, lat) tuples
 
     Returns:
         bool: If point is inside polygon
