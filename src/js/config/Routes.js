@@ -35,6 +35,7 @@ var Logs = require('components/Logs');
 // Admin
 var AdminManage = require('components/AdminManage');
 var AdminSpoof = require('components/AdminSpoof');
+var AdminSpoofPayment = require('components/AdminSpoofPayment');
 
 // Account Admin
 var ManageUsers = require('components/ManageUsers');
@@ -83,7 +84,8 @@ module.exports = (
       <Route path="logs" component={Logs}/>
       <Route path="admin" component={Admin}>
         <Route path="manage" component={AdminManage}/>
-        <Route path="spoof" component={AdminSpoof}/>
+        <Route path="spoof/data" component={AdminSpoof}/>
+        <Route path="spoof/payment" component={AdminSpoofPayment}/>
       </Route>
       <Route path="users" component={ManageUsers} />
       <Route path="users/:userID" component={UserDetail}/>
