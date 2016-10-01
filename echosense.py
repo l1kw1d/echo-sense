@@ -136,6 +136,7 @@ app = webapp2.WSGIApplication(
 
       # Cron jobs (see cron.yaml)
       webapp2.Route('/cron/monthly', handler=cronActions.Monthly),
+      webapp2.Route('/cron/weekly', handler=cronActions.Weekly),
       webapp2.Route('/cron/digests/admin', handler=cronActions.AdminDigest),
       webapp2.Route('/cron/oauth/google_key_certs', handler=adminActions.UpdateGoogleKeyCerts),
 

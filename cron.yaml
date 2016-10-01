@@ -3,6 +3,10 @@ cron:
   url: /cron/monthly
   schedule: 1 of month 22:00
 
+- description: monthly cron
+  url: /cron/weekly
+  schedule: every sunday 23:00
+
 - description: daily google key certs update
   url: /cron/oauth/google_key_certs
   schedule: every 12 hours

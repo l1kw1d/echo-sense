@@ -1,14 +1,10 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from google.appengine.api import mail, memcache, taskqueue
-from google.appengine.ext import deferred
-
-from models import *
+from google.appengine.ext import deferred, db
+from models import Report
 from constants import *
-import tools
-import authorized
-import services
 
 import handlers
 
@@ -37,6 +33,18 @@ class WarmupHandler(handlers.BaseRequestHandler):
 
 
 class Monthly(handlers.BaseRequestHandler):
+    def get(self):
+        # Delete reports older than 1 month
+        cutoff = datetime.now() - timedelta(days=30)
+        reports_to_delete = Report.all().filter("dt_created <", cutoff).fetch(limit=50)
+        for r in reports_to_delete:
+            r.CleanDelete(self_delete=False)
+        n = len(reports_to_delete)
+        db.delete(reports_to_delete)
+        logging.debug("Deleting %d reports created before %s" % (n, cutoff))
+
+
+class Weekly(handlers.BaseRequestHandler):
     def get(self):
         pass
 
