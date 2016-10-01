@@ -1,11 +1,7 @@
-import logging, os, re, string
-
+import logging
 from google.appengine.ext import webapp, db, deferred
 from google.appengine.api import users, images, memcache, taskqueue
-
 from google.appengine.ext.webapp import template
-from django.template import defaultfilters
-
 from models import *
 from constants import *
 

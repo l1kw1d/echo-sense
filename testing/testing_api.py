@@ -32,6 +32,7 @@ class APITestCase(BaseTestCase):
         self.init_memcache_stub()
         self.init_taskqueue_stub()
         self.register_search_api_stub()
+        self.init_modules_stub()
 
         # Create enterprise, sensortype and sensor
         self.e = Enterprise.Create()

@@ -156,6 +156,7 @@ class ProcessingTestCase(BaseTestCase):
         self.init_mail_stub()
         self.register_search_api_stub()
         self.init_urlfetch_stub()
+        self.init_modules_stub()
 
         # Create enterprise, sensortype and sensor
         self.e = Enterprise.Create()
