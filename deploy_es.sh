@@ -35,6 +35,7 @@ check_indexes(){
 }
 
 deploy(){
+	check_services
 	check_indexes
 	check_server_tests
 	check_js_tests
@@ -47,15 +48,49 @@ cancel_deploy(){
 	exit 1
 }
 
+check_services() {
+    for a in $micro_services; do
+            service_version_line=$(grep "^version:" $(dirname $0)/"$a");
+            service_version=${service_version_line##* };
+            if [ "$service_version" != "$version" ]; then
+                    echo "";
+                    echo "ALERT !! service {$a} version {$service_version} did not match default version {$version}";
+                    cancel_deploy
+            fi
+    done
+}
+
 if [ "$1" = "rollback" ]; then
 	rollback
 fi
 
+micro_services="app.yaml processing.yaml"
+# first do a git pull to bring down tags
+git pull
 version_line=$(grep "^version:" $(dirname $0)/app.yaml);
 version=${version_line##* };
+# production versions only contain digits, hf and - (dash)
+production_version=false
+# note: keep in sync with constants.PROD_VERSION_REGEX
+if [[ $version =~ ^[0-9hf\-]+[a-z]?$ ]]; then
+	production_version=true
+	env="production"
+	# if deploying to production, it is compulsory to deploy all services
+	micro_services="app.yaml processing.yaml"
+else
+	env="staging"
+fi
 
-read -p "Are you sure you want to deploy to $version? (y/n) " -n 1 -r
+s_length=$(echo $services | wc -c)
+if [ "$s_length" -gt 1 ]; then
+   prom="Are you sure you want to deploy to $version with services $services? (y/n) "
+else
+   prom="Are you sure you want to deploy to $version? (y/n) "
+fi
+
+read -p "$prom" -n 1 -r
 echo
+
 if [[ $REPLY =~ ^[Yy]$ ]]; then
 	#production versions only contain digits, hf and - (dash)
 	if [[ $version =~ ^[0-9hf\-]+$ ]]; then

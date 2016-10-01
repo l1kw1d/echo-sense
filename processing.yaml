@@ -1,5 +1,6 @@
 application: echo-sense
 version: 0-69
+module: processing
 runtime: python27
 api_version: 1
 threadsafe: true
