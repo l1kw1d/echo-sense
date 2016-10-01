@@ -2,7 +2,13 @@ APPCFG=~/google_appengine/appcfg.py # Customize based on local setup
 
 rollback(){
 	echo -e "\nRolling back.....\n"
-	python APPCFG rollback --oauth2 $(dirname $0)
+    if [ "$s_length" -gt 1 ]; then
+        com="python $APPCFG rollback --oauth2 $(dirname $0)/app.yaml $services"
+    else
+        com="python $APPCFG rollback --oauth2 $(dirname $0)"
+    fi
+    eval $com
+
 }
 
 check_server_tests(){
@@ -10,6 +16,16 @@ check_server_tests(){
 	RESULT=$?
 	if [ $RESULT -ne 0 ]; then
 		echo -e "\nSERVER UNIT TESTS FAILED!\n"
+		cancel_deploy
+	fi
+}
+
+install_npm_dependencies(){
+    echo "Updating npm dependencies according to the package.json..."
+    npm install .
+	RESULT=$?
+	if [ $RESULT -ne 0 ]; then
+		echo -e "\nUPDATING NPM DEPENDENCIES FAILED!\n"
 		cancel_deploy
 	fi
 }
@@ -35,12 +51,22 @@ check_indexes(){
 }
 
 deploy(){
+	if [ "$1" = "rollback" ]; then
+		rollback
+	fi
 	check_services
 	check_indexes
 	check_server_tests
 	check_js_tests
+	install_npm_dependencies
 	gulp production
-	python $APPCFG update --oauth2 $(dirname $0)
+    if [ "$s_length" -gt 1 ]; then
+        python $APPCFG update $services
+    else
+    	for s in $services; do
+    		python $APPCFG update $s
+    	done
+    fi
 }
 
 cancel_deploy(){
@@ -49,7 +75,7 @@ cancel_deploy(){
 }
 
 check_services() {
-    for a in $micro_services; do
+    for a in $services; do
             service_version_line=$(grep "^version:" $(dirname $0)/"$a");
             service_version=${service_version_line##* };
             if [ "$service_version" != "$version" ]; then
@@ -60,11 +86,7 @@ check_services() {
     done
 }
 
-if [ "$1" = "rollback" ]; then
-	rollback
-fi
-
-micro_services="app.yaml processing.yaml"
+services="app.yaml processing.yaml"
 # first do a git pull to bring down tags
 git pull
 version_line=$(grep "^version:" $(dirname $0)/app.yaml);
@@ -76,7 +98,7 @@ if [[ $version =~ ^[0-9hf\-]+[a-z]?$ ]]; then
 	production_version=true
 	env="production"
 	# if deploying to production, it is compulsory to deploy all services
-	micro_services="app.yaml processing.yaml"
+	services="app.yaml processing.yaml"
 else
 	env="staging"
 fi

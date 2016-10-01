@@ -93,6 +93,9 @@ class BaseTestCase(unittest.TestCase):
         """Get task queue stub"""
         return self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
 
+    def init_modules_stub(self):
+        self.testbed.init_modules_stub()
+
     def init_urlfetch_stub(self):
         self.testbed.init_urlfetch_stub()
 

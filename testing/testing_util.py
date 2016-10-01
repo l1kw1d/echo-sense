@@ -25,7 +25,7 @@ class UtilTestCase(BaseTestCase):
         self.init_memcache_stub()
         self.init_taskqueue_stub()
         self.register_search_api_stub()
-
+        self.init_modules_stub()
 
     def testValidJson(self):
         volley=[
