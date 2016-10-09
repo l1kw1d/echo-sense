@@ -1441,3 +1441,47 @@ class SearchAPI(handlers.JsonRequestHandler):
                     results.append({'type': type, 'id': doc_id, 'label': name})
 
         self.json_out({"results": results}, success=success, message=message)
+
+
+class PaymentCallback(handlers.JsonRequestHandler):
+    """
+    handles callbacks about incentives
+    """
+
+    def post(self, service):
+        """
+        handles the post requests to this service
+        """
+        logging.debug("Payment callback (%s) params: %s" % (
+            service,
+            [(arg, self.request.get(arg)) for arg in self.request.arguments()])
+        )
+        self.service = service
+        if self.service in SUPPORTED_PAYMENT_GATEWAYS:
+            result = self.handle_callback()
+            self.response.out.write(result)
+        else:
+            self.json_out(success=False, status=400)
+
+    def handle_callback(self):
+        """
+        handles the callback logic
+        """
+        from models import Payment
+        request_id = self.request.get('requestId')
+        status = self.request.get('status')
+        pmnt = Payment.Get(request_id)
+        if pmnt:
+            if status == 'Success':
+                pmnt.confirmed()
+            else:
+                # Failed
+                pmnt.failed()
+                if PAYMENT_RETRIES_ENABLED and pmnt.attempts < PAYMENT_RETRIES_ENABLED:
+                    # Schedule after delay?
+                    self.send()
+            pmnt.put()
+        else:
+            cdr = "%s not found" % (request_id)
+            logging.debug(cdr)
+        return "Callback Accepted"

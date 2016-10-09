@@ -1475,6 +1475,7 @@ class Payment(UserAccessible):
     currency = db.StringProperty(default="USD")
     direction = db.IntegerProperty(default=PAYMENT.TO)
     status = db.IntegerProperty(default=PAYMENT.REQUESTED)
+    attempts = db.IntegerProperty(default=0, indexed=False)
     gateway_id = db.StringProperty()
     last_gateway_response = db.TextProperty()
     channel = db.IntegerProperty(default=PAYMENT.AIRTIME)
@@ -1522,11 +1523,16 @@ class Payment(UserAccessible):
         else:
             return []
 
+    @staticmethod
+    def Get(id):
+        return Payment.all().filter("gateway_id =", id).get()
+
     def send(self):
         success = False
         if self.can_send():
             if self.channel == PAYMENT.AIRTIME:
                 if self.user.phone:
+                    self.attempts += 1
                     success, self.last_gateway_response, self.gateway_id = outbox.send_airtime(self.enterprise, self.user.phone, self.amount, self.currency)
                     if success:
                         self.confirm_sent()
@@ -1540,7 +1546,12 @@ class Payment(UserAccessible):
     def confirm_sent(self):
         self.status = PAYMENT.SENT
 
+    def confirmed(self):
+        logging.debug("Payment %s marked as confirmed" % self.gateway_id)
+        self.status = PAYMENT.CONFIRMED
+
     def failed(self):
+        logging.warning("Payment %s marked as failed" % self.gateway_id)
         self.status = PAYMENT.FAILED
 
     def can_send(self):
