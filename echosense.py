@@ -118,6 +118,7 @@ app = webapp2.WSGIApplication(
 
       # Communications
       webapp2.Route('/api/email/send', handler=api.SendEmail, name="apiSendEmail"),
+      webapp2.Route('/gateway/payments/<service>', handler=api.PaymentCallback),
 
       # Inbox
       webapp2.Route('/<eid>/inbox/<format>/<sensor_kn>', handler=inbox.DataInbox, name="DataInbox"),
