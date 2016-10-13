@@ -227,7 +227,12 @@ class SensorProcessWorker(object):
         active_alarm = self.active_rules[rule_index]
         rule = self.rules[rule_index]
         record_ts = record.ts()
-        passed, diff, val = rule.alarm_condition_passed(record, prior_r=self.last_record)
+        try:
+            passed, diff, val = rule.alarm_condition_passed(record, prior_r=self.last_record)
+        except Exception, e:
+            logging.error("Error in alarm_condition_passed: %s" % e)
+            passed = False
+            diff = val = 0
         force_clear = False
         if passed:
             if active_alarm:
