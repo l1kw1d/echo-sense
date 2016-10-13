@@ -1,5 +1,5 @@
 application: echo-sense
-version: test
+version: 0-70
 module: processing
 runtime: python27
 api_version: 1
