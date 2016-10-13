@@ -928,10 +928,11 @@ class SensorProcessTaskAPI(handlers.JsonRequestHandler):
         success = False
         message = None
         sptkey = self.request.get('sptkey')
+        ignore_unprocessed = self.request.get_range('ignore_unprocessed')
         spt = SensorProcessTask.get(sptkey)
         if spt:
-            if spt.is_running():
-                spt.clean_up()
+            if spt.is_running() or ignore_unprocessed:
+                spt.clean_up(ignore_unprocessed=ignore_unprocessed)
                 spt.put()
                 success = True
             else:

@@ -1338,10 +1338,12 @@ class SensorProcessTask(db.Model):
         self.running = False
         self.narrative_last_run = narrative
 
-    def clean_up(self):
+    def clean_up(self, ignore_unprocessed=False):
         self.running = False
         self.status_last_run = PROCESS.CLEANED_UP
         self.narrative_last_run = "Cleaned up..."
+        if ignore_unprocessed:
+            self.dt_last_record = datetime.now()
 
     def is_running(self):
         '''
