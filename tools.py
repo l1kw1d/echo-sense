@@ -2,7 +2,7 @@ import os, time, sys, random, urllib, string, logging, math, re, uuid
 from datetime import datetime, timedelta, date
 from datetime import time as _time
 from google.appengine.ext import db, deferred
-from google.appengine.api import mail, taskqueue, images, urlfetch, memcache
+from google.appengine.api import mail, taskqueue, images, urlfetch, memcache, modules
 import cgi
 import hashlib
 import pytz
@@ -629,7 +629,7 @@ def safe_add_task(callable, *args, **kwargs):
     """
     task_add_retries = kwargs.pop("task_add_retries", 0)
     TASK_BATCH_SIZE = 100
-
+    from constants import BACKGROUND_SERVICE
     success = True
 
     try:
@@ -646,8 +646,11 @@ def safe_add_task(callable, *args, **kwargs):
             # create a list of taskqueue.Task Objects from the list of dicts
             task_list = []
             for task_dict in callable:
-                if not task_dict.get("name"):
-                    task_dict["name"] = uuid.uuid4().hex
+                task_dict.setdefault("name", uuid.uuid4().hex)
+                # run tasks on the crons micro-service (if non specified)
+                if on_default_version():
+                    task_dict.setdefault("target", BACKGROUND_SERVICE)
+
                 task = taskqueue.Task(**task_dict)
                 task_list.append(task)
 
@@ -661,11 +664,9 @@ def safe_add_task(callable, *args, **kwargs):
                 task_list = task_list[TASK_BATCH_SIZE:]
         else:
             # Simple callable passed in
-            if not kwargs.get("_name"):
-                kwargs["_name"] = uuid.uuid4().hex
-            # if "queue_name" in kwargs:
-            #     qn = kwargs.pop('queue_name')
-            #     kwargs['_queue'] = qn
+            kwargs.setdefault("_name", uuid.uuid4().hex)
+            if on_default_version():
+                kwargs.setdefault("_target", BACKGROUND_SERVICE)
             deferred.defer(callable, *args, **kwargs)
         return success
     except (taskqueue.TombstonedTaskError, taskqueue.TaskAlreadyExistsError):
@@ -777,6 +778,12 @@ def batched_runtime_with_jitter(now, interval_mins=5, name_prefix=None, max_jitt
 
     return runAt
 
+
+def on_default_version():
+    return modules.get_current_version_name() ==\
+        modules.get_default_version()
+
+
 def add_batched_task(callable, name_prefix, interval_mins=5, max_jitter_pct=0.0, warnOnDuplicate=True, *args, **kwargs):
     """Add a task batched to the nearest synchronized interval.
 
@@ -803,6 +810,7 @@ def add_batched_task(callable, name_prefix, interval_mins=5, max_jitter_pct=0.0,
     taskName = "bt_%s_%s_%s" % (name_prefix, callable.__name__, unixtime(runAt))
     # logging.debug("Scheduling task for %s - %s" % (runAt, taskName))
     safe_add_task(callable, _name=taskName, _eta=runAt, *args, **kwargs)
+
 
 def polygon_from_geojson(geoj):
     '''

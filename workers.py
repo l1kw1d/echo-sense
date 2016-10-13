@@ -8,9 +8,9 @@ from google.appengine.ext import db
 from google.appengine.runtime import DeadlineExceededError
 from google.appengine.api import runtime
 from errors import TooLongError, Shutdown
+import traceback
 
 USE_DEFERRED = True
-
 
 
 # TODO
@@ -227,7 +227,12 @@ class SensorProcessWorker(object):
         active_alarm = self.active_rules[rule_index]
         rule = self.rules[rule_index]
         record_ts = record.ts()
-        passed, diff, val = rule.alarm_condition_passed(record, prior_r=self.last_record)
+        try:
+            passed, diff, val = rule.alarm_condition_passed(record, prior_r=self.last_record)
+        except Exception, e:
+            logging.error("Error in alarm_condition_passed: %s" % e)
+            passed = False
+            diff = val = 0
         force_clear = False
         if passed:
             if active_alarm:
@@ -351,4 +356,5 @@ class SensorProcessWorker(object):
             self.finish(result=PROCESS.ERROR, narrative="Instance shutdown")
         except Exception, e:
             logging.error("Uncaught error: %s" % e)
+            traceback.print_exc()
             self.finish(result=PROCESS.ERROR, narrative="Processing Error: %s" % e)

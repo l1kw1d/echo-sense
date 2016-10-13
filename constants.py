@@ -49,9 +49,13 @@ GP_CLIENT_SECRET = ""
 TOKEN_AUD = GP_CLIENT_ID # Web Component
 TOKEN_AZP = [ANDROID_CLIENT_ID, ANDROID_CLIENT_ID_DEBUG]
 
+# Payments
+PAYMENT_RETRIES_ENABLED = 0
+SUPPORTED_PAYMENT_GATEWAYS = ["atalking"]
+
 TEST_VERSIONS = ["test"]
 
-BILLING_DAYS_PER_MO = 30
+BACKGROUND_SERVICE = "processing"
 
 MAX_REQUEST_SECONDS = 40*3
 MAX_PLIMIT = 20
@@ -66,6 +70,7 @@ MS_PER_SECOND = 1000
 MS_PER_MINUTE = MS_PER_SECOND * 60
 MS_PER_HOUR = MS_PER_MINUTE * 60
 MS_PER_DAY = MS_PER_HOUR * 24
+
 
 class DOWNSAMPLE():
     NONE = 0
@@ -164,47 +169,49 @@ class PROCESS():
 
     STATUS_LABELS = { NEVER_RUN: "Never Run", OK: "OK", WARNING: "Warning", ERROR: "Error", CLEANED_UP: "Cleaned Up" }
 
+
 class RULE():
-  # Trigger
-  NO_DATA = 1
-  FLOOR = 2
-  CEILING = 3
-  IN_WINDOW = 4
-  OUT_WINDOW = 5
-  DELTA_FLOOR = 6
-  DELTA_CEILING = 7
-  ANY_DATA = 8
-  GEOFENCE_OUT = 9
-  GEOFENCE_IN = 10
-  GEORADIUS_OUT = 11
-  GEORADIUS_IN = 12
+    # Trigger
+    NO_DATA = 1
+    FLOOR = 2
+    CEILING = 3
+    IN_WINDOW = 4
+    OUT_WINDOW = 5
+    DELTA_FLOOR = 6
+    DELTA_CEILING = 7
+    ANY_DATA = 8
+    GEOFENCE_OUT = 9
+    GEOFENCE_IN = 10
+    GEORADIUS_OUT = 11
+    GEORADIUS_IN = 12
 
-  TRIGGER_LABELS = {
-    NO_DATA: "No Data (To Implement)",
-    FLOOR: "Floor",
-    CEILING: "Ceiling",
-    IN_WINDOW: "In Window",
-    OUT_WINDOW: "Out Window",
-    DELTA_FLOOR: "Delta Floor",
-    DELTA_CEILING: "Delta Ceiling",
-    ANY_DATA: "Any Data",
-    GEOFENCE_OUT: "Outside Geofence",
-    GEOFENCE_IN: "Inside Geofence",
-    GEORADIUS_OUT: "Outside Geo-Radius",
-    GEORADIUS_IN: "Inside Geo-Radius"
-  }
+    TRIGGER_LABELS = {
+        NO_DATA: "No Data (To Implement)",
+        FLOOR: "Floor",
+        CEILING: "Ceiling",
+        IN_WINDOW: "In Window",
+        OUT_WINDOW: "Out Window",
+        DELTA_FLOOR: "Delta Floor",
+        DELTA_CEILING: "Delta Ceiling",
+        ANY_DATA: "Any Data",
+        GEOFENCE_OUT: "Outside Geofence",
+        GEOFENCE_IN: "Inside Geofence",
+        GEORADIUS_OUT: "Outside Geo-Radius",
+        GEORADIUS_IN: "Inside Geo-Radius"
+    }
 
-  # Other Constants
-  DISABLED = -1
-  ANY = -2
+    # Other Constants
+    DISABLED = -1
+    ANY = -2
 
-  # Periods
-  SECOND = 1
-  MINUTE = 2
-  HOUR = 3
-  DAY = 4
-  WEEK = 5
-  MONTH = 6
+    # Periods
+    SECOND = 1
+    MINUTE = 2
+    HOUR = 3
+    DAY = 4
+    WEEK = 5
+    MONTH = 6
+
 
 class RECORD():
     # Data Types
@@ -212,11 +219,13 @@ class RECORD():
 
     ILLEGAL_COLNAMES = ["enterprise","sensor","target","dt_created","dt_recorded","minute","hour"]
 
+
 # Message channels
 class CHANNEL():
   EMAIL = 1
   SMS = 2
   GCM = 3 # Google cloud message (push)
+
 
 class PAYMENT():
     # For incentives

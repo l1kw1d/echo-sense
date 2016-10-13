@@ -14,7 +14,9 @@ import urllib, urllib2
 import json
 
 from google.appengine.api import taskqueue, memcache  ## Google App Engine specific
-from django.utils import importlib
+# from django.utils import importlib
+# Was raising error, issue recommends following. https://github.com/gregbayer/gae-python-gcm/issues/2
+from google.appengine._internal.django.utils import importlib
 
 try:
     from settings import LOCALHOST, GCM_CONFIG
