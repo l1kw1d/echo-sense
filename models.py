@@ -1586,7 +1586,7 @@ class Record(db.Expando):
     def __repr__(self):
         return "<Record kn=%s at=%s />" % (self.key().name(), tools.sdatetime(self.dt_recorded))
 
-    def json(self, with_props=True, props_only=False):
+    def json(self, with_props=True, with_types=False, props_only=False):
         res = {}
         if not props_only:
             res = {
@@ -1598,8 +1598,13 @@ class Record(db.Expando):
             }
         if with_props:
             res['columns'] = {}
+            if with_types:
+                res['types'] = {}
             for prop in self.columns():
-                res['columns'][prop] = self.columnValue(prop)
+                val = self.columnValue(prop)
+                res['columns'][prop] = val
+                if with_types:
+                    res['types'][prop] = type(val).__name__
         return res
 
     def columns(self):

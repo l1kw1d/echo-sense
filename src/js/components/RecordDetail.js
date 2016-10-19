@@ -4,11 +4,9 @@ var $ = require('jquery');
 var DialogChooser = require('components/DialogChooser');
 var LoadStatus = require('components/LoadStatus');
 var AppConstants = require('constants/AppConstants');
-var mui = require('material-ui');
-var RefreshIndicator = mui.RefreshIndicator;
-var RaisedButton = mui.RaisedButton;
-var FlatButton = mui.FlatButton;
-var IconButton = mui.IconButton;
+import {RefreshIndicator, RaisedButton, FlatButton,
+  IconButton, Table, TableRow, TableRowColumn,
+  TableHeader, TableHeaderColumn, TableBody } from 'material-ui';
 var util = require('utils/util');
 var toastr = require('toastr');
 var bootbox = require('bootbox');
@@ -65,13 +63,19 @@ export default class RecordDetail extends React.Component {
     if (!r) {
       content = (<RefreshIndicator size={40} left={50} top={50} status="loading" />);
     } else {
-      var _columns = [];
+      var _prop_rows = [];
       if (r.columns) {
         for (var colname in r.columns) {
           if (r.columns.hasOwnProperty(colname)) {
-            _columns.push(
-              <li className="list-group-item"><b>{ colname }</b> { r.columns[colname] }</li>
-              )
+            var val = r.columns[colname];
+            var type = r.types[colname];
+            _prop_rows.push(
+              <TableRow>
+                <TableRowColumn>{ colname }</TableRowColumn>
+                <TableRowColumn>{ type }</TableRowColumn>
+                <TableRowColumn>{ val }</TableRowColumn>
+              </TableRow>
+            );
           }
         }
       }
@@ -84,9 +88,20 @@ export default class RecordDetail extends React.Component {
             <b>Sensor:</b> <span><Link to={`/app/sensors/${r.sensor_kn}`}>{ r.sensor_kn }</Link></span>
 
             <h2>Data</h2>
-            <ul className="list-group">
-              { _columns }
-            </ul>
+
+            <Table selectable={false} displaySelectAll={false} adjustForCheckbox={false}>
+              <TableHeader>
+                <TableRow displayRowCheckbox={false}>
+                  <TableHeaderColumn>Property</TableHeaderColumn>
+                  <TableHeaderColumn>Type</TableHeaderColumn>
+                  <TableHeaderColumn>Value</TableHeaderColumn>
+                </TableRow>
+              </TableHeader>
+              <TableBody displayRowCheckbox={false}>
+                { _prop_rows }
+              </TableBody>
+            </Table>
+
           </div>
 
         </div>

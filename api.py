@@ -320,7 +320,7 @@ class DataAPI(handlers.JsonRequestHandler):
             success = True
         else:
             message = "Couldn't find record"
-        self.json_out(success=success, message=message, data={'record': r.json() if r else None})
+        self.json_out(success=success, message=message, data={'record': r.json(with_types=True) if r else None})
 
 
 class SensorAPI(handlers.JsonRequestHandler):
