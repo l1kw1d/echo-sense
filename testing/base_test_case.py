@@ -99,6 +99,9 @@ class BaseTestCase(unittest.TestCase):
     def init_urlfetch_stub(self):
         self.testbed.init_urlfetch_stub()
 
+    def init_app_identity_stub(self):
+        self.testbed.init_app_identity_stub()
+
     def init_mail_stub(self):
         self.testbed.init_mail_stub()
 

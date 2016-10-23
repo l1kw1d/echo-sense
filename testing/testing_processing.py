@@ -1,17 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
 
-import unittest
-from google.appengine.api import memcache
 from google.appengine.ext import db
-from google.appengine.ext import testbed
 
 from datetime import datetime, timedelta
 import tools
 import json
-from google.appengine.ext import deferred
 import logging
-import os
 import random
 from constants import *
 from models import Enterprise, SensorType, Sensor, Record, Rule, Alarm, ProcessTask, SensorProcessTask, Analysis, User, Payment

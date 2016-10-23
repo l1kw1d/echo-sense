@@ -1,5 +1,5 @@
 application: echo-sense
-version: 0-70
+version: 0-72
 runtime: python27
 api_version: 1
 threadsafe: true

@@ -577,7 +577,7 @@ class SensorType(UserAccessible):
     * 'label' - label
     * 'unit' - e.g. kph
     * 'role' - int list, see COLUMN roles
-    * 'type' - E.g. 'number' or 'latlng'. See Google Visualization data types
+    * 'type' - E.g. 'number', 'string' or 'latlng', etc. See Google Visualization data types
     * 'calculation' - Expression parsed by expressionParser
     Schema can include both raw props and calculated/processed props that can be populated
     during processing or upon post
@@ -1611,7 +1611,10 @@ class Record(db.Expando):
         return self.dynamic_properties()
 
     def columnValue(self, column, default=None):
-        return getattr(self, column, default)
+        cv = getattr(self, column, default)
+        if isinstance(cv, basestring):
+            cv = tools.removeNonAscii(cv)
+        return cv
 
     def setColumnValue(self, column, value, _type=None):
         if _type:
@@ -1621,8 +1624,8 @@ class Record(db.Expando):
 
     def ts(self):
         return tools.unixtime(self.dt_recorded)
-    @staticmethod
 
+    @staticmethod
     def Get(enterprise, sensor_kn, kn):
         key = db.Key.from_path('Enterprise', enterprise.key().id(), 'Sensor', sensor_kn, 'Record', kn)
         if key:
