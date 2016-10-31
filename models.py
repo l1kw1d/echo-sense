@@ -1439,7 +1439,7 @@ class SensorProcessTask(db.Model):
                     interval_mins=mins,
                     max_jitter_pct=0.2,
                     sptkey=str(self.key()),
-                    _queue="processing-queue")
+                    _queue="processing-queue-new")
         else:
             logging.info("%s can't run now" % self)
 
@@ -1452,7 +1452,7 @@ class SensorProcessTask(db.Model):
                 bgRunSensorProcess,
                 sptkey=str(self.key()),
                 _name=self.process_task_name(subset=str(tools.unixtime())),
-                _queue="processing-queue")
+                _queue="processing-queue-new")
             return True
         else:
             logging.debug("No need to run %s" % self)

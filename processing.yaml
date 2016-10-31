@@ -1,6 +1,4 @@
-application: echo-sense
-version: 0-74
-module: processing
+service: processing
 runtime: python27
 api_version: 1
 threadsafe: true
@@ -74,6 +72,8 @@ libraries:
   version: "latest"
 - name: numpy
   version: "latest"
+- name: markupsafe
+  version: "0.23"
 
 skip_files:
 - ^(.*/)?#.*#$
