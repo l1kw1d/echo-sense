@@ -50,7 +50,8 @@ deploy(){
 	check_js_tests
 	install_npm_dependencies
 	gulp production
-	if [ "$env" -eq "staging" ]; then
+	gcloud config configurations activate sense
+	if [ "$env" == "staging" ]; then
 		gcloud app deploy $deploy_configs --version=$version --no-promote
 	else
 		gcloud app deploy $deploy_configs --version=$version
