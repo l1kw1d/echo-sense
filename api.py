@@ -788,7 +788,6 @@ class AnalysisAPI(handlers.JsonRequestHandler):
         akey = db.Key.from_path('Analysis', akn, parent=d['enterprise'].key())
 
         with_props = self.request.get_range('with_props') == 1
-        _max = self.request.get_range('max', max_value=500, default=50)
 
         a = Analysis.get(akey)
         if a:
@@ -799,6 +798,28 @@ class AnalysisAPI(handlers.JsonRequestHandler):
             }
         self.json_out(data, success=success, message=message)
 
+    @authorized.role('api')
+    def update(self, akn, d):
+        success = False
+        message = None
+
+        cols = self.request.get('cols').split(',')
+
+        akey = db.Key.from_path('Analysis', akn, parent=d['enterprise'].key())
+
+        a = Analysis.Get(self.enterprise, akn, get_or_insert=True)
+        logging.debug(cols)
+        if a:
+            for col in cols:
+                val = self.request.get(col)
+                a.setColumnValue(col, val)
+            a.put()
+            success = True
+
+        data = {
+            'analysis': a.json(with_props=True) if a else None
+            }
+        self.json_out(data, success=success, message=message)
 
 class RuleAPI(handlers.JsonRequestHandler):
     @authorized.role('api')

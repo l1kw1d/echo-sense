@@ -1,21 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
 
-import unittest
-from google.appengine.api import memcache
 from google.appengine.ext import db
-from google.appengine.ext import testbed
-from expressionParser import ExpressionParser
 from datetime import datetime, timedelta
-import tools
 import json
-import math
-from google.appengine.ext import deferred
 from base_test_case import BaseTestCase
-import logging
-import os
 from constants import *
-from models import Enterprise, User, Sensor, SensorType
+from models import Enterprise, User, Sensor, SensorType, Analysis
 from echosense import app as tst_app
 
 TEST_NUM = "254729000000"
@@ -111,6 +102,30 @@ class APITestCase(BaseTestCase):
         self.assertIsNotNone(s)
         self.assertEqual(s.name, "Geo Sensor 1")
         self.assertEqual(s.sensortype.key(), self.st.key())
+
+    def testAnalysisAPIs(self):
+        self.analysis = Analysis.Get(self.e, "ROLLUP", get_or_insert=True)
+        self.analysis.put()
+
+        # Test update
+        params = self.__commonParams()
+        params.update({
+            'cols': 'TOTAL,MINIMUM',
+            'TOTAL': 10,
+            'MINIMUM': 2.5
+            })
+        result = self.get_json("/api/analysis/ROLLUP", params)
+        print result
+        self.assertTrue(result['success'])
+
+        # Test detail
+        params = self.__commonParams()
+        params['with_props'] = 1
+        result = self.get_json("/api/analysis/ROLLUP", params)
+        print result
+        self.assertTrue(result['success'])
+        self.assertEqual(result['data']['analysis']['columns']['TOTAL'], 10)
+        self.assertEqual(result['data']['analysis']['columns']['MINIMUM'], 2.5)
 
     def testEnterpriseLookup(self):
         # self.__login()
