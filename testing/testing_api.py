@@ -104,17 +104,19 @@ class APITestCase(BaseTestCase):
         self.assertEqual(s.sensortype.key(), self.st.key())
 
     def testAnalysisAPIs(self):
+        print ">>>>>>>>>>>>>>>"
         self.analysis = Analysis.Get(self.e, "ROLLUP", get_or_insert=True)
         self.analysis.put()
 
         # Test update
         params = self.__commonParams()
         params.update({
+            'akn': 'ROLLUP',
             'cols': 'TOTAL,MINIMUM',
             'TOTAL': 10,
             'MINIMUM': 2.5
             })
-        result = self.get_json("/api/analysis/ROLLUP", params)
+        result = self.post_json("/api/analysis", params)
         print result
         self.assertTrue(result['success'])
 
@@ -124,8 +126,8 @@ class APITestCase(BaseTestCase):
         result = self.get_json("/api/analysis/ROLLUP", params)
         print result
         self.assertTrue(result['success'])
-        self.assertEqual(result['data']['analysis']['columns']['TOTAL'], 10)
-        self.assertEqual(result['data']['analysis']['columns']['MINIMUM'], 2.5)
+        self.assertEqual(result['data']['analysis']['columns']['TOTAL'], '10')
+        self.assertEqual(result['data']['analysis']['columns']['MINIMUM'], '2.5')
 
     def testEnterpriseLookup(self):
         # self.__login()

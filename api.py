@@ -799,11 +799,12 @@ class AnalysisAPI(handlers.JsonRequestHandler):
         self.json_out(data, success=success, message=message)
 
     @authorized.role('api')
-    def update(self, akn, d):
+    def update(self, d):
         success = False
         message = None
 
         cols = self.request.get('cols').split(',')
+        akn = self.request.get('akn')
 
         akey = db.Key.from_path('Analysis', akn, parent=d['enterprise'].key())
 
@@ -812,6 +813,7 @@ class AnalysisAPI(handlers.JsonRequestHandler):
         if a:
             for col in cols:
                 val = self.request.get(col)
+                print col, val
                 a.setColumnValue(col, val)
             a.put()
             success = True
