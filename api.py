@@ -799,6 +799,26 @@ class AnalysisAPI(handlers.JsonRequestHandler):
         self.json_out(data, success=success, message=message)
 
     @authorized.role('api')
+    def detail_multi(self, akn_list, d):
+        success = False
+        message = None
+
+        _akn_list = akn_list.split(',')
+        akeys = [db.Key.from_path('Analysis', akn, parent=d['enterprise'].key()) for akn in _akn_list]
+
+        with_props = self.request.get_range('with_props') == 1
+
+        data = {'analyses': {}}
+        analyses = Analysis.get(akeys)
+        if analyses:
+            success = True
+            for a in analyses:
+                if a:
+                    data['analyses'][a.key().name()] = a.json(with_props=with_props)
+
+        self.json_out(data, success=success, message=message)
+
+    @authorized.role('api')
     def update(self, d):
         success = False
         message = None
@@ -809,11 +829,9 @@ class AnalysisAPI(handlers.JsonRequestHandler):
         akey = db.Key.from_path('Analysis', akn, parent=d['enterprise'].key())
 
         a = Analysis.Get(self.enterprise, akn, get_or_insert=True)
-        logging.debug(cols)
         if a:
             for col in cols:
                 val = self.request.get(col)
-                print col, val
                 a.setColumnValue(col, val)
             a.put()
             success = True

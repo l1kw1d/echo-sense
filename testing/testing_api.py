@@ -104,7 +104,6 @@ class APITestCase(BaseTestCase):
         self.assertEqual(s.sensortype.key(), self.st.key())
 
     def testAnalysisAPIs(self):
-        print ">>>>>>>>>>>>>>>"
         self.analysis = Analysis.Get(self.e, "ROLLUP", get_or_insert=True)
         self.analysis.put()
 
@@ -117,17 +116,34 @@ class APITestCase(BaseTestCase):
             'MINIMUM': 2.5
             })
         result = self.post_json("/api/analysis", params)
-        print result
+        self.assertTrue(result['success'])
+
+        # Create second record
+        params.update({
+            'akn': 'TODAY',
+            'cols': 'TOTAL,MINIMUM',
+            'TOTAL': 1,
+            'MINIMUM': 0
+            })
+        result = self.post_json("/api/analysis", params)
         self.assertTrue(result['success'])
 
         # Test detail
         params = self.__commonParams()
         params['with_props'] = 1
         result = self.get_json("/api/analysis/ROLLUP", params)
-        print result
         self.assertTrue(result['success'])
         self.assertEqual(result['data']['analysis']['columns']['TOTAL'], '10')
         self.assertEqual(result['data']['analysis']['columns']['MINIMUM'], '2.5')
+
+        # Test detail multi
+        params = self.__commonParams()
+        params['with_props'] = 1
+        result = self.get_json("/api/analysis/multi/ROLLUP,TODAY", params)
+        self.assertTrue(result['success'])
+        self.assertEqual(type(result['data']['analyses']['ROLLUP']), dict)
+        self.assertEqual(type(result['data']['analyses']['TODAY']), dict)
+
 
     def testEnterpriseLookup(self):
         # self.__login()
