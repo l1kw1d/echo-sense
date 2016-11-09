@@ -1130,8 +1130,11 @@ class Analysis(db.Expando):
         return analysis_key_pattern
 
     @staticmethod
-    def Get(e, kn):
-        return Analysis.get_by_key_name(kn, parent=e)
+    def Get(e, kn, get_or_insert=False):
+        if get_or_insert:
+            return Analysis.get_or_insert(kn, parent=e)
+        else:
+            return Analysis.get_by_key_name(kn, parent=e)
 
     @staticmethod
     def GetOrCreate(sensor, analysis_key_pattern):
