@@ -37,22 +37,34 @@ class PublicAPI(handlers.JsonRequestHandler):
 
     @authorized.role()
     def forgot_password(self, email_or_phone, d):
+        import outbox
         success = False
         override_sitename = self.request.get('override_sitename')
         if email_or_phone:
             user = User.FuzzyGet(email_or_phone)
             if user:
-                if user.email:
-                    new_password = user.setPass()
-                    user.put()
-                    success = True
-                    if tools.on_dev_server():
-                        logging.debug(new_password)
-                    message = "Password reset successful - check your email"
-                    prefix = EMAIL_PREFIX if not override_sitename else "[ %s ] " % override_sitename
-                    deferred.defer(mail.send_mail, SENDER_EMAIL, user.email, prefix + "Password Reset", "Your password has been reset: %s. You can change this upon signing in." % new_password)
+                via_email = '@' in email_or_phone
+                if via_email and user.email or not via_email and user.phone:
+                    if tools.not_throttled("PW_RESET_%s" % user.key().id()):
+                        new_password = user.setPass()
+                        user.put()
+                        success = True
+                        if tools.on_dev_server():
+                            logging.debug(new_password)
+                        reset_message = "Your password has been reset: %s. You can change this upon signing in." % new_password
+                        if via_email:
+                            # Send via email
+                            prefix = EMAIL_PREFIX if not override_sitename else "[ %s ] " % override_sitename
+                            deferred.defer(mail.send_mail, SENDER_EMAIL, user.email, prefix + "Password Reset", reset_message)
+                            message = "A new password is being sent to your email"
+                        else:
+                            # Send via SMS
+                            message = "A new password is being sent via SMS"
+                            outbox.send_sms(user.enterprise, user.phone, reset_message)
+                    else:
+                        message = "Too many password requests -- please try again later"
                 else:
-                    message = "No email address on file for that user. Please contact support."
+                    message = "No email/phone on file -- can't reset"
             else:
                 message = "User not found..."
         else:
