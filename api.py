@@ -841,6 +841,30 @@ class AnalysisAPI(handlers.JsonRequestHandler):
             }
         self.json_out(data, success=success, message=message)
 
+    @authorized.role('api')
+    def update_multi(self, d):
+        success = False
+        message = None
+
+        data_dict = tools.getJson(self.request.get('data'))  # Analysis key -> Dict of cols -> values
+
+        kns = data_dict.keys()
+        akeys = [db.Key.from_path('Analysis', akn, parent=d['enterprise'].key()) for akn in kns]
+        analyses = Analysis.get(akeys)
+        db_put = []
+        for akn, a in zip(kns, analyses):
+            if not a:
+                a = Analysis.Get(self.enterprise, akn, get_or_insert=True)
+            data = data_dict.get(a.key().name())
+            for col, val in data.items():
+                a.setColumnValue(col, val)
+            db_put.append(a)
+        db.put(db_put)
+        message = "Updating %d objects" % len(db_put)
+        success = bool(len(db_put))
+        self.json_out(success=success, message=message)
+
+
 class RuleAPI(handlers.JsonRequestHandler):
     @authorized.role('api')
     def list(self, d):

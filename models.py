@@ -1132,7 +1132,7 @@ class Analysis(db.Expando):
     @staticmethod
     def Get(e, kn, get_or_insert=False):
         if get_or_insert:
-            return Analysis.get_or_insert(kn, parent=e)
+            return Analysis.get_or_insert(kn, parent=e, enterprise=e)
         else:
             return Analysis.get_by_key_name(kn, parent=e)
 

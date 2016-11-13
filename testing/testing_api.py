@@ -118,6 +118,31 @@ class APITestCase(BaseTestCase):
         result = self.post_json("/api/analysis", params)
         self.assertTrue(result['success'])
 
+        # Test batch update
+        data = {
+            'ROLLUP1': {
+                'TOTAL': 4,
+                'MINIMUM': 0
+            },
+            'ROLLUP2': {
+                'TOTAL': -4,
+                'MINIMUM': 10
+            }
+        }
+        params = self.__commonParams()
+        params.update({
+            'data': json.dumps(data)
+            })
+        result = self.post_json("/api/analysis/multi", params)
+        self.assertTrue(result['success'])
+        print result
+
+        rollup1 = Analysis.get_by_key_name('ROLLUP1', parent=self.e)
+        rollup2 = Analysis.get_by_key_name('ROLLUP2', parent=self.e)
+        self.assertEqual(rollup1.columnValue('TOTAL'), 4)
+        self.assertEqual(rollup2.columnValue('TOTAL'), -4)
+
+
         # Create second record
         params.update({
             'akn': 'TODAY',
