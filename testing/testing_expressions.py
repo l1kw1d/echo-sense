@@ -16,7 +16,7 @@ import logging
 import os
 from echosense import app as tst_app
 
-class UtilTestCase(BaseTestCase):
+class ExpressionsTestCase(BaseTestCase):
 
     def setUp(self):
         self.set_application(tst_app)

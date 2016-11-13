@@ -350,7 +350,7 @@ class SensorProcessWorker(object):
             logging.debug("Deadline expired, creating new request... Records: %s, Continuations: %s, Last record: %s" % (self.records_processed, self.continuations, self.last_record))
             self.continuations += 1
             task_name = self.sensorprocess.process_task_name(subset="cont_%s" % tools.unixtime())
-            tools.safe_add_task(self.run, _name=task_name, _queue="processing-queue")
+            tools.safe_add_task(self.run, _name=task_name, _queue="processing-queue-new")
         except (Shutdown):
             logging.debug("Finishing because instance shutdown...")
             self.finish(result=PROCESS.ERROR, narrative="Instance shutdown")

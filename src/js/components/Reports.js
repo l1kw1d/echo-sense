@@ -104,13 +104,18 @@ export default class Reports extends React.Component {
     var _download;
     if (r.status == AppConstants.REPORT_DONE) _download = <a href="javascript:void(0)" onClick={this.download.bind(this, r)}>Download</a>;
     var status_text = util.findItemById(AppConstants.REPORT_STATUSES, r.status, 'value').label;
+    var duration = "--";
+    if (r.ts_generated) {
+      duration = util.secsToDuration((r.ts_generated - r.ts_created)/1000);
+    }
     return (
       <li className="list-group-item">
         <span className="title">{ r.title }</span>
         <span className="sub">{ status_text }</span>
         { _download }
         &nbsp;<a href="javascript:void(0)" onClick={this.delete.bind(this, r)}><i className="fa fa-trash"></i></a>
-        <span className="sub right" data-ts={r.ts_created}></span>
+        <span className="sub right hide_hover" data-ts={r.ts_created}></span>
+        <span className="sub right show_hover">Generated in { duration }</span>
       </li>
       )
   }

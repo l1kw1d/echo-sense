@@ -1,21 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
 
-import unittest
-from google.appengine.api import memcache
 from google.appengine.ext import db
-from google.appengine.ext import testbed
-from expressionParser import ExpressionParser
 from datetime import datetime, timedelta
-import tools
 import json
-import math
-from google.appengine.ext import deferred
 from base_test_case import BaseTestCase
-import logging
-import os
 from constants import *
-from models import Enterprise, User, Sensor, SensorType
+from models import Enterprise, User, Sensor, SensorType, Analysis
 from echosense import app as tst_app
 
 TEST_NUM = "254729000000"
@@ -111,6 +102,73 @@ class APITestCase(BaseTestCase):
         self.assertIsNotNone(s)
         self.assertEqual(s.name, "Geo Sensor 1")
         self.assertEqual(s.sensortype.key(), self.st.key())
+
+    def testAnalysisAPIs(self):
+        self.analysis = Analysis.Get(self.e, "ROLLUP", get_or_insert=True)
+        self.analysis.put()
+
+        # Test update
+        params = self.__commonParams()
+        params.update({
+            'akn': 'ROLLUP',
+            'cols': 'TOTAL,MINIMUM',
+            'TOTAL': 10,
+            'MINIMUM': 2.5
+            })
+        result = self.post_json("/api/analysis", params)
+        self.assertTrue(result['success'])
+
+        # Test batch update
+        data = {
+            'ROLLUP1': {
+                'TOTAL': 4,
+                'MINIMUM': 0
+            },
+            'ROLLUP2': {
+                'TOTAL': -4,
+                'MINIMUM': 10
+            }
+        }
+        params = self.__commonParams()
+        params.update({
+            'data': json.dumps(data)
+            })
+        result = self.post_json("/api/analysis/multi", params)
+        self.assertTrue(result['success'])
+        print result
+
+        rollup1 = Analysis.get_by_key_name('ROLLUP1', parent=self.e)
+        rollup2 = Analysis.get_by_key_name('ROLLUP2', parent=self.e)
+        self.assertEqual(rollup1.columnValue('TOTAL'), 4)
+        self.assertEqual(rollup2.columnValue('TOTAL'), -4)
+
+
+        # Create second record
+        params.update({
+            'akn': 'TODAY',
+            'cols': 'TOTAL,MINIMUM',
+            'TOTAL': 1,
+            'MINIMUM': 0
+            })
+        result = self.post_json("/api/analysis", params)
+        self.assertTrue(result['success'])
+
+        # Test detail
+        params = self.__commonParams()
+        params['with_props'] = 1
+        result = self.get_json("/api/analysis/ROLLUP", params)
+        self.assertTrue(result['success'])
+        self.assertEqual(result['data']['analysis']['columns']['TOTAL'], '10')
+        self.assertEqual(result['data']['analysis']['columns']['MINIMUM'], '2.5')
+
+        # Test detail multi
+        params = self.__commonParams()
+        params['with_props'] = 1
+        result = self.get_json("/api/analysis/multi/ROLLUP,TODAY", params)
+        self.assertTrue(result['success'])
+        self.assertEqual(type(result['data']['analyses']['ROLLUP']), dict)
+        self.assertEqual(type(result['data']['analyses']['TODAY']), dict)
+
 
     def testEnterpriseLookup(self):
         # self.__login()

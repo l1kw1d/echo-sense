@@ -84,10 +84,11 @@ def send_airtime(enterprise, phone, amount, currency):
     ]
     """
     AT_API_KEY = enterprise.get_gateway_property('atalking', 'ApiKey')
+    AT_USERNAME = enterprise.get_gateway_property('atalking', 'username')
     amount_str = "[{\"phoneNumber\":\"+%s\",\"amount\":\"%s %d\"}]" % (phone, currency, int(amount))
     par_list=[
-        ('ApiKey',AT_API_KEY),
-        ('username',"echomobile"),
+        ('ApiKey', AT_API_KEY),
+        ('username', AT_USERNAME),
         ('recipients', amount_str)
     ]
     headers = {

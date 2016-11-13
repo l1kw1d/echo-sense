@@ -320,7 +320,7 @@ class DataAPI(handlers.JsonRequestHandler):
             success = True
         else:
             message = "Couldn't find record"
-        self.json_out(success=success, message=message, data={'record': r.json() if r else None})
+        self.json_out(success=success, message=message, data={'record': r.json(with_types=True) if r else None})
 
 
 class SensorAPI(handlers.JsonRequestHandler):
@@ -788,7 +788,6 @@ class AnalysisAPI(handlers.JsonRequestHandler):
         akey = db.Key.from_path('Analysis', akn, parent=d['enterprise'].key())
 
         with_props = self.request.get_range('with_props') == 1
-        _max = self.request.get_range('max', max_value=500, default=50)
 
         a = Analysis.get(akey)
         if a:
@@ -798,6 +797,72 @@ class AnalysisAPI(handlers.JsonRequestHandler):
             'analysis': a.json(with_props=with_props) if a else None
             }
         self.json_out(data, success=success, message=message)
+
+    @authorized.role('api')
+    def detail_multi(self, akn_list, d):
+        success = False
+        message = None
+
+        _akn_list = akn_list.split(',')
+        akeys = [db.Key.from_path('Analysis', akn, parent=d['enterprise'].key()) for akn in _akn_list]
+
+        with_props = self.request.get_range('with_props') == 1
+
+        data = {'analyses': {}}
+        analyses = Analysis.get(akeys)
+        if analyses:
+            success = True
+            for a in analyses:
+                if a:
+                    data['analyses'][a.key().name()] = a.json(with_props=with_props)
+
+        self.json_out(data, success=success, message=message)
+
+    @authorized.role('api')
+    def update(self, d):
+        success = False
+        message = None
+
+        cols = self.request.get('cols').split(',')
+        akn = self.request.get('akn')
+
+        akey = db.Key.from_path('Analysis', akn, parent=d['enterprise'].key())
+
+        a = Analysis.Get(self.enterprise, akn, get_or_insert=True)
+        if a:
+            for col in cols:
+                val = self.request.get(col)
+                a.setColumnValue(col, val)
+            a.put()
+            success = True
+
+        data = {
+            'analysis': a.json(with_props=True) if a else None
+            }
+        self.json_out(data, success=success, message=message)
+
+    @authorized.role('api')
+    def update_multi(self, d):
+        success = False
+        message = None
+
+        data_dict = tools.getJson(self.request.get('data'))  # Analysis key -> Dict of cols -> values
+
+        kns = data_dict.keys()
+        akeys = [db.Key.from_path('Analysis', akn, parent=d['enterprise'].key()) for akn in kns]
+        analyses = Analysis.get(akeys)
+        db_put = []
+        for akn, a in zip(kns, analyses):
+            if not a:
+                a = Analysis.Get(self.enterprise, akn, get_or_insert=True)
+            data = data_dict.get(a.key().name())
+            for col, val in data.items():
+                a.setColumnValue(col, val)
+            db_put.append(a)
+        db.put(db_put)
+        message = "Updating %d objects" % len(db_put)
+        success = bool(len(db_put))
+        self.json_out(success=success, message=message)
 
 
 class RuleAPI(handlers.JsonRequestHandler):

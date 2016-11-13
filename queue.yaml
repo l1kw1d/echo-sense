@@ -2,7 +2,9 @@ queue:
 - name: default
   rate: 1/s
 - name: processing-queue
-  rate: 1/s
+  rate: 4/s
+- name: processing-queue-new
+  rate: 10/s
   bucket_size: 3
 - name: sms-out-queue
   rate: 3/s

@@ -1,15 +1,8 @@
-APPCFG=~/google_appengine/appcfg.py # Customize based on local setup
+#!/bin/sh
 
-rollback(){
-	echo -e "\nRolling back.....\n"
-    if [ "$s_length" -gt 1 ]; then
-        com="python $APPCFG rollback --oauth2 $(dirname $0)/app.yaml $services"
-    else
-        com="python $APPCFG rollback --oauth2 $(dirname $0)"
-    fi
-    eval $com
-
-}
+INDEX_YAML="index.yaml"
+CRON_YAML="cron.yaml"
+QUEUE_YAML="queue.yaml"
 
 check_server_tests(){
 	./run_tests.sh
@@ -51,22 +44,18 @@ check_indexes(){
 }
 
 deploy(){
-	if [ "$1" = "rollback" ]; then
-		rollback
-	fi
 	check_services
 	check_indexes
 	check_server_tests
 	check_js_tests
 	install_npm_dependencies
 	gulp production
-    if [ "$s_length" -gt 1 ]; then
-        python $APPCFG update $services
-    else
-    	for s in $services; do
-    		python $APPCFG update $s
-    	done
-    fi
+	gcloud config configurations activate sense
+	if [ "$env" == "staging" ]; then
+		gcloud app deploy $deploy_configs --version=$version --no-promote
+	else
+		gcloud app deploy $deploy_configs --version=$version
+	fi
 }
 
 cancel_deploy(){
@@ -86,11 +75,10 @@ check_services() {
     done
 }
 
-services="app.yaml processing.yaml"
+version=$1
+deploy_configs="${@:2}" # Remaining args
 # first do a git pull to bring down tags
 git pull
-version_line=$(grep "^version:" $(dirname $0)/app.yaml);
-version=${version_line##* };
 # production versions only contain digits, hf and - (dash)
 production_version=false
 # note: keep in sync with constants.PROD_VERSION_REGEX
@@ -98,14 +86,15 @@ if [[ $version =~ ^[0-9hf\-]+[a-z]?$ ]]; then
 	production_version=true
 	env="production"
 	# if deploying to production, it is compulsory to deploy all services
-	services="app.yaml processing.yaml"
+	deploy_configs="app.yaml processing.yaml $INDEX_YAML $CRON_YAML $QUEUE_YAML"
 else
+	# cron/index/queue must be specified explicitly
 	env="staging"
 fi
 
-s_length=$(echo $services | wc -c)
+s_length=$(echo $deploy_configs | wc -c)
 if [ "$s_length" -gt 1 ]; then
-   prom="Are you sure you want to deploy to $version with services $services? (y/n) "
+   prom="Are you sure you want to deploy to $version with configs $deploy_configs? (y/n) "
 else
    prom="Are you sure you want to deploy to $version? (y/n) "
 fi

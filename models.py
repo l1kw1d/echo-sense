@@ -577,7 +577,7 @@ class SensorType(UserAccessible):
     * 'label' - label
     * 'unit' - e.g. kph
     * 'role' - int list, see COLUMN roles
-    * 'type' - E.g. 'number' or 'latlng'. See Google Visualization data types
+    * 'type' - E.g. 'number', 'string' or 'latlng', etc. See Google Visualization data types
     * 'calculation' - Expression parsed by expressionParser
     Schema can include both raw props and calculated/processed props that can be populated
     during processing or upon post
@@ -1130,8 +1130,11 @@ class Analysis(db.Expando):
         return analysis_key_pattern
 
     @staticmethod
-    def Get(e, kn):
-        return Analysis.get_by_key_name(kn, parent=e)
+    def Get(e, kn, get_or_insert=False):
+        if get_or_insert:
+            return Analysis.get_or_insert(kn, parent=e, enterprise=e)
+        else:
+            return Analysis.get_by_key_name(kn, parent=e)
 
     @staticmethod
     def GetOrCreate(sensor, analysis_key_pattern):
@@ -1439,7 +1442,7 @@ class SensorProcessTask(db.Model):
                     interval_mins=mins,
                     max_jitter_pct=0.2,
                     sptkey=str(self.key()),
-                    _queue="processing-queue")
+                    _queue="processing-queue-new")
         else:
             logging.info("%s can't run now" % self)
 
@@ -1452,7 +1455,7 @@ class SensorProcessTask(db.Model):
                 bgRunSensorProcess,
                 sptkey=str(self.key()),
                 _name=self.process_task_name(subset=str(tools.unixtime())),
-                _queue="processing-queue")
+                _queue="processing-queue-new")
             return True
         else:
             logging.debug("No need to run %s" % self)
@@ -1586,7 +1589,7 @@ class Record(db.Expando):
     def __repr__(self):
         return "<Record kn=%s at=%s />" % (self.key().name(), tools.sdatetime(self.dt_recorded))
 
-    def json(self, with_props=True, props_only=False):
+    def json(self, with_props=True, with_types=False, props_only=False):
         res = {}
         if not props_only:
             res = {
@@ -1598,15 +1601,23 @@ class Record(db.Expando):
             }
         if with_props:
             res['columns'] = {}
+            if with_types:
+                res['types'] = {}
             for prop in self.columns():
-                res['columns'][prop] = self.columnValue(prop)
+                val = self.columnValue(prop)
+                res['columns'][prop] = val
+                if with_types:
+                    res['types'][prop] = type(val).__name__
         return res
 
     def columns(self):
         return self.dynamic_properties()
 
     def columnValue(self, column, default=None):
-        return getattr(self, column, default)
+        cv = getattr(self, column, default)
+        if isinstance(cv, basestring):
+            cv = tools.removeNonAscii(cv)
+        return cv
 
     def setColumnValue(self, column, value, _type=None):
         if _type:
@@ -1616,8 +1627,8 @@ class Record(db.Expando):
 
     def ts(self):
         return tools.unixtime(self.dt_recorded)
-    @staticmethod
 
+    @staticmethod
     def Get(enterprise, sensor_kn, kn):
         key = db.Key.from_path('Enterprise', enterprise.key().id(), 'Sensor', sensor_kn, 'Record', kn)
         if key:
