@@ -135,7 +135,23 @@ class APITestCase(BaseTestCase):
             })
         result = self.post_json("/api/analysis/multi", params)
         self.assertTrue(result['success'])
-        print result
+
+        # Test batch update (to confirm other values not overwritten)
+        data = {
+            'ROLLUP1': {
+                'NEW': 'hello'
+            }
+        }
+        params = self.__commonParams()
+        params.update({
+            'data': json.dumps(data)
+            })
+        result = self.post_json("/api/analysis/multi", params)
+        self.assertTrue(result['success'])
+        # Confirm update occurred preserving other values
+        rollup1 = Analysis.get_by_key_name('ROLLUP1', parent=self.e)
+        self.assertEqual(rollup1.columnValue('NEW'), 'hello')
+        self.assertEqual(rollup1.columnValue('TOTAL'), 4)
 
         rollup1 = Analysis.get_by_key_name('ROLLUP1', parent=self.e)
         rollup2 = Analysis.get_by_key_name('ROLLUP2', parent=self.e)
